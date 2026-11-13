@@ -5,7 +5,7 @@ description: |
   Covers targeted reading protocols (zero token bloat), piped command discipline, non-regurgitation laws,
   anti-hallucination honest reporting, fast-feedback verification gates, the "Stop and Ask" escalation matrix,
   single-concern execution, strict single-line commit rules (zero AI attribution/trailers), runtime verification over static checks,
-  persistent cross-session memory architecture (ACTIVE_TASK.md state machine), test-based coding (TDD & regression-first),
+  persistent cross-session memory architecture (TASK.md state machine), test-based coding (TDD & regression-first),
   continuous documentation synchronization, delegation cost, background-run hygiene, the decision standard with honest
   disagreement, and the code invariants shared by every language (zero comments, type safety, zero suppressions, plain naming).
 ---
@@ -261,11 +261,11 @@ Code and architectural documentation must evolve in perfect lockstep.
 
 ---
 
-## 9. Persistent Cross-Session & Multi-Device Memory Architecture (`ACTIVE_TASK.md` System)
+## 9. Persistent Cross-Session & Multi-Device Memory Architecture (`TASK.md` System)
 
 Conversational LLM context is ephemeral. Chat history is wiped or degraded when context windows compact, when `/clear` is executed, when switching between laptop and desktop workstations, or when resuming after days away. Relying on conversational history for project memory is an architectural failure.
 
-| Dimension | 🔴 Ephemeral Chat Memory (Fragile) | 🟢 File-Backed State Machine (`ACTIVE_TASK.md`) |
+| Dimension | 🔴 Ephemeral Chat Memory (Fragile) | 🟢 File-Backed State Machine (`TASK.md`) |
 | :--- | :--- | :--- |
 | **Cross-Session Retention** | Lost upon `/clear`, `/compact`, or session reset | 100% preserved on disk across weeks |
 | **Multi-Device Sync** | Trapped in local chat client session | Synchronized via git across workstations |
@@ -273,8 +273,8 @@ Conversational LLM context is ephemeral. Chat history is wiped or degraded when 
 | **Backlog Preservation** | Mid-task user ideas forgotten in chat history | Captured in `## 3. Queued Tasks` immediately |
 | **Audit Traceability** | Disappears when context rolls over | Archived to `docs/archive/` with commit hashes |
 
-### 9.1 The Live Task State Machine (`ACTIVE_TASK.md`)
-The single source of truth for active project memory is a dedicated file at the repository root: `ACTIVE_TASK.md`. It tracks in-flight intent, queued requests, and pending blockers across all sessions and devices.
+### 9.1 The Live Task State Machine (`TASK.md`)
+The single source of truth for active project memory is a dedicated file at the repository root: `TASK.md`. It tracks in-flight intent, queued requests, and pending blockers across all sessions and devices.
 
 ### 9.2 The Standard 4-Section Structure
 ```markdown
@@ -299,16 +299,16 @@ The single source of truth for active project memory is a dedicated file at the 
 ```
 
 ### 9.3 The 5 Operational State Machine Rules
-1. **Task Intake (Zero Lost Requests):** Whenever the user mentions a new feature, improvement, bug, or idea while another task is active, the agent MUST immediately append it to `## 3. Queued Tasks` in `ACTIVE_TASK.md`. It is never left to volatile chat memory.
+1. **Task Intake (Zero Lost Requests):** Whenever the user mentions a new feature, improvement, bug, or idea while another task is active, the agent MUST immediately append it to `## 3. Queued Tasks` in `TASK.md`. It is never left to volatile chat memory.
 2. **Task Promotion & Atomic Execution:** When ready to start a task, promote it from `## 3. Queued Tasks` to `## 2. Active Task`, break it down into concrete atomic sub-steps, and update `## 1. Goal`.
 3. **Auto-Archiving Invariant (Zero File Bloat):** Upon completing and committing a task:
    - In the same step, before starting anything else:
    - Append a 1-line summary with commit hash to the project's archive (default `docs/archive/COMPLETED_TASKS_YYYY_MM.md`).
-   - Remove the completed task from `ACTIVE_TASK.md`.
+   - Remove the completed task from `TASK.md`.
    - Promote the next queued task to Active with short step lines and update the goal.
    - Never append progress into a queued item's description, and never leave a finished task under Active.
-   - **Hard Invariant:** `ACTIVE_TASK.md` MUST NEVER exceed 200 lines (< 8 KB). Completed tasks must never accumulate in the active state file.
-4. **Session Orientation on Boot (< 500 Tokens):** Upon starting ANY session or resuming on a new device, the agent's very first action is reading `ACTIVE_TASK.md`. The agent restores complete situational awareness in < 500 tokens without scanning the git log, reading directory trees, or grepping files.
+   - **Hard Invariant:** `TASK.md` MUST NEVER exceed 200 lines (< 8 KB). Completed tasks must never accumulate in the active state file.
+4. **Session Orientation on Boot (< 500 Tokens):** Upon starting ANY session or resuming on a new device, the agent's very first action is reading `TASK.md`. The agent restores complete situational awareness in < 500 tokens without scanning the git log, reading directory trees, or grepping files.
 5. **Context Compaction & Reset Protocol:**
    - When a session context window grows large mid-feature, recommend `/compact`.
    - After completing and committing a milestone, recommend `/clear` to start fresh with pristine reasoning capability.
