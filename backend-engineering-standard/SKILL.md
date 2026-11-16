@@ -63,8 +63,11 @@ To prevent technical details from polluting business domains, backend code is cl
 | **Repository** | Sole persistence gate, queries, schema mapping | One repository per aggregate root. Maps database rows (`snake_case`) to domain models (`camelCase`). Never decides authorization or exposes raw query builders. |
 | **Port (Interface / Abstract Class)** | Abstract contract declaring external capabilities required by domain | Pure contract with zero implementation code. Declared in `<module>.ports.ts` inside domain. |
 | **Adapter** | Concrete technical implementation of a Port | Located in infrastructure layer (`@infra` or adapter subfolder). Can be swapped without touching a single line of business logic. |
-| **DTO (Data Transfer Object)** | Transport wire shape and request input validation | Terminates strictly at the Controller. Never imported by or passed into domain services or repositories. |
-| **Pure Util** | Deterministic calculations (tax math, slug formatting) | Pure functions with zero database, network, or file-system I/O. |
+| **DTO (Data Transfer Object)** | Transport wire shape and request input validation | Declared in `<module>.dto.ts`. Terminates strictly at the Controller: only controllers import it. Never imported by or passed into domain services, repositories, interfaces or utilities. |
+| **Constants** | Plain shared values (status values, limits, literal lists, lookup maps) | Declared in `<module>.constants.ts`. Zero functions and zero schema or validator builders. Imports only other constants files and types. |
+| **Pure Util** | Deterministic calculations (tax math, slug formatting, row-to-model mapping) | Declared in `<module>.util.ts`. Pure functions with zero database, network, or file-system I/O. |
+
+* **One Class per Class File:** A module, controller, service, repository or guard file declares at most one class and zero functions outside it. A helper that serves the class becomes a private method; a pure, deterministic helper may instead live in `<module>.util.ts`. Plain constants beside the class are allowed.
 
 ### 2.4 Strict SOLID Engineering Laws for Backend Services
 
@@ -131,6 +134,8 @@ While command/write paths strictly enforce domain aggregate boundaries through t
   - `<module>.ports.ts`
   - `<module>.errors.ts`
   - `<module>.constants.ts`
+  - `<module>.dto.ts`
+  - `<module>.util.ts`
 * **Single File at Module Root:** If a module has exactly **one** controller, service, or repository, it MUST live directly at the root of that module named after the module:
   - `<module>.controller.ts`
   - `<module>.service.ts`
@@ -151,7 +156,7 @@ An `index.ts` barrel that exports heavy runtime classes (`Controller`, `Service`
 * **The 5 Shared Contract Categories:**
   1. **Types & Interfaces (`<module>.interface.ts`):** Pure compile-time shapes (zero runtime JavaScript).
   2. **Ports & DI Tokens (`<module>.ports.ts`):** Abstract contracts and injection symbols declaring *what* capability is required.
-  3. **Constants & Enums (`<module>.constants.ts`):** Shared discrete values (`OrderStatus.PAID`, regex validators, status unions, limits).
+  3. **Constants & Enums (`<module>.constants.ts`):** Shared plain values (`OrderStatus.PAID`, status unions, limits, literal lists). Zero functions and zero schema or validator builders; validation schemas belong in `<module>.dto.ts`.
   4. **Domain Errors & Codes (`<module>.errors.ts`):** Machine-readable error codes and domain exceptions.
   5. **Pure Utility Functions (`<module>.util.ts`):** Deterministic helpers (tax math, slug generation) with zero database/network I/O.
 * **Direct File Imports Across Boundaries:** When Module A needs any of the 5 shared contract categories from Module B, it MUST import directly from that specific contract file, NEVER from Module B's composite `index.ts` barrel.
