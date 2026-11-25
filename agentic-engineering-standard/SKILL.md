@@ -346,12 +346,13 @@ Long-term plans, audits, architecture designs, and historical decisions belong i
 ### 9.4 Single-Prompt Repository Bootstrap Protocol (Day-0 Setup)
 
 Whenever the user prompts in ANY new or existing repository:
-> **"Initialize universal documentation and memory system"** (or *"Setup repo memory"*, *"Bootstrap agentic docs"*):
+> **"Setup repo memory"** (or *"Unclutter repo"*, *"Initialize memory"*):
 
-The agent MUST scaffold the complete structure in **a single parallel execution turn**:
+The agent MUST scaffold or reorganize the complete structure in **a single parallel execution turn**:
 
 * **Pre-existing Specification Invariant:** If `SPEC.md` (or `SPECS.md`) already exists in the repository, the agent **MUST NEVER overwrite or truncate it**. It reads the product goal from the existing `SPEC.md` and initializes `TASK.md` around that goal.
 * If `SPEC.md` does not exist, seed it with the architectural contract outline.
+* **Clutter Migration Law (Existing Repos):** In existing repositories, the agent scans for scattered TODOs, design notes, audit lists, and bloated task files, moving them into their rightful homes (`docs/BACKLOG.md`, `docs/AUDIT_BACKLOG.md`, `docs/DECISIONS.md`, `docs/designs/`, `docs/reports/`, `docs/archive/`) and shrinks `TASK.md` to `<= 30 lines`.
 
 **Generated Files & Structure (Identical Standard in Every Project):**
 1. **Submodule & Standards:**
