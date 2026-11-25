@@ -423,11 +423,6 @@ Concurrent writes must be governed by an explicit concurrency strategy matched t
 * **Zero Table-Locking Migrations:** Never execute blocking synchronous `ALTER TABLE ... ADD COLUMN ... NOT NULL` without a default on live production tables. Never run `CREATE INDEX` synchronously on tables exceeding 100,000 rows.
 * **Non-Transactional DDL Execution:** Index creations that require `CONCURRENTLY` cannot run inside standard multi-statement transaction blocks. They must execute outside transactions (e.g. via `*.no_transaction.sql` runners) with idempotent guards (`IF NOT EXISTS`).
 
-### 6.11 Third-Party Integration Fixtures & Raw Payload Ingestion (`tests/fixtures/`)
-* **The Raw Payload Law:** When integrating third-party APIs, webhooks, or callbacks (e.g. Stripe, WhatsApp, Twilio, SendGrid, OAuth identity providers), tests MUST NOT rely exclusively on hand-written, idealized in-memory mock objects.
-* **Immutable Fixture Files:** Actual raw JSON/XML provider payloads (with sensitive production secrets and PII sanitized) MUST be recorded and stored under `tests/fixtures/<provider>_<event>.json`.
-* **Contract Deserialization Tests:** Integration test suites must unmarshal these raw vendor fixtures directly into domain event DTOs/structs to verify that unexpected nulls, missing attributes, nested objects, and string timestamps parse without runtime errors.
-
 ### 6.11 Database Connection Management & Pool Telemetry
 * Use a robust connection pool (e.g. `pg-pool`). Never create a new database connection per HTTP request.
 * Monitor pool health metrics: pool size, active connections, waiting queue count, query latency, and connection error rates.
@@ -593,6 +588,11 @@ To support zero-downtime rolling deployments, processes MUST handle termination 
 ## 10. Testing, Verification & Quality Gates
 
 Test-driven process (red-green-refactor, regression-first fixes, behaviour names, zero flaky tests, tests outside `src/`) is defined in `agentic-engineering-standard` §10. The backend adds:
+
+### 10.1 Third-Party Integration Fixtures & Raw Payload Ingestion (`tests/fixtures/`)
+* **The Raw Payload Law:** When integrating third-party APIs, webhooks, or callbacks (e.g. Stripe, WhatsApp, Twilio, SendGrid, OAuth identity providers), tests MUST NOT rely exclusively on hand-written, idealized in-memory mock objects.
+* **Immutable Fixture Files:** Actual raw JSON/XML provider payloads (with sensitive production secrets and PII sanitized) MUST be recorded and stored under `tests/fixtures/<provider>_<event>.json`.
+* **Contract Deserialization Tests:** Integration test suites must unmarshal these raw vendor fixtures directly into domain event DTOs/structs to verify that unexpected nulls, missing attributes, nested objects, and string timestamps parse without runtime errors.
 
 ### 10.2 The Mandatory 6-Dimension Backend Test Matrix
 Every backend feature MUST be covered across these 6 critical dimensions:
