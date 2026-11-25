@@ -354,12 +354,14 @@ The agent MUST scaffold the complete structure in **a single parallel execution 
 * If `SPEC.md` does not exist, seed it with the architectural contract outline.
 
 **Generated Files & Structure (Identical Standard in Every Project):**
-1. **Root Files:**
+1. **Submodule & Standards:**
+   - Adds `.skills/` as a git submodule (`git submodule add git@github.com:md-asharaf/skills.git .skills`) so that engineering standards are version-controlled directly in git, easily editable, and shareable.
+2. **Root Files:**
    - `AGENTS.md`: Agent constitution, code style invariants, Stop-and-Ask triggers, and Universal Memory operating system.
    - `CLAUDE.md`: Claude Code entrypoint importing `@AGENTS.md` with master sources of truth and quality gates.
    - `TASK.md`: Live state machine (strictly `<= 30 lines`) with Goal, Active Task, Queued Tasks, Blockers.
    - `SPEC.md`: Preserved if present; seeded if absent.
-2. **Cold Knowledge Base (`docs/`):**
+3. **Cold Knowledge Base (`docs/`):**
    - `docs/BACKLOG.md`: Product roadmap and unscheduled feature backlog.
    - `docs/AUDIT_BACKLOG.md`: Technical debt and code smells tracking table.
    - `docs/DECISIONS.md`: Living ADR document initialized with template.

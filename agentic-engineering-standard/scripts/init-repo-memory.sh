@@ -9,7 +9,25 @@ CURRENT_DATE=$(date +"%Y-%m-%d")
 
 echo "Initializing Universal Documentation and Memory System in: $(pwd)"
 
-# 1. Create directory structure
+# 0. Initialize git repository if missing
+if [ ! -d ".git" ]; then
+  git init
+  echo "Initialized git repository"
+fi
+
+# 1. Add .skills submodule if missing
+if [ ! -d ".skills" ]; then
+  echo "Adding .skills submodule (git@github.com:md-asharaf/skills.git)..."
+  if git submodule add git@github.com:md-asharaf/skills.git .skills 2>/dev/null; then
+    echo "Added .skills submodule via SSH"
+  elif git submodule add https://github.com/md-asharaf/skills.git .skills 2>/dev/null; then
+    echo "Added .skills submodule via HTTPS"
+  else
+    echo "Note: could not add .skills submodule automatically (network or git auth); configure manually if needed"
+  fi
+fi
+
+# 2. Create directory structure
 mkdir -p docs/designs docs/reports docs/archive
 touch docs/designs/.gitkeep docs/reports/.gitkeep
 
