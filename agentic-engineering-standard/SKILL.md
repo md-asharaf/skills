@@ -254,7 +254,7 @@ Static compilation and zero-error linter checks do NOT prove working software.
 
 Code and architectural documentation must evolve in perfect lockstep.
 
-* **The Rule:** Whenever application behavior, an API route, an error code, an environment variable, or a database column changes, the corresponding section in the project's documentation MUST be updated **in the exact same change or commit**.
+* **The Rule:** Whenever application behavior, an API route, an error code, an environment variable (and `.env.example`), or a database column changes, the corresponding section in the project's documentation MUST be updated **in the exact same change or commit**.
 * If a discrepancy or missing specification section is discovered during development, either:
   1. Update the specification documentation immediately in the same turn.
   2. Flag the exact specification gap in the Completion Report for human review.
@@ -408,6 +408,7 @@ Code without automated tests is unverified hypothesis. Autonomous agents MUST fo
 * **Zero Tests in `src/`:** Test files live exclusively under dedicated test directories (`tests/`), never mingled inside production source code (`src/`).
 * **Test Behaviors, Not Implementations:** Name tests by the external contract or behavior they verify (e.g. `it('rejects order checkout when stock is depleted')`), never by internal private method names.
 * **Zero Flaky Tests:** Never retry a failed test hoping it turns green. A flaky test is either fixed immediately (fixing timing issues or state isolation) or removed.
+* **Third-Party Payload Fixtures (`tests/fixtures/`):** When testing integrations with third-party vendors (webhooks, callbacks, external API responses), tests must deserialize from immutable raw fixture files (`tests/fixtures/`), never from synthetic, hand-invented mocks.
 
 ---
 

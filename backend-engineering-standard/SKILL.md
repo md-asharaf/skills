@@ -119,6 +119,11 @@ While command/write paths strictly enforce domain aggregate boundaries through t
   3. **Stable Columns Only:** The query selects only columns documented as public/stable in the target module's schema contract.
   4. **Single-Statement Execution:** The composite projection must execute in a single SQL statement rather than multiple roundtrips.
 
+### 2.8 Typed Startup Configuration & The .env.example Lockstep Invariant
+* **Fail-Fast Validation at Boot:** All environment configuration must be read and validated into strongly typed structures during application startup. Missing or malformed required variables MUST halt process initialization immediately with explicit error messages (`ConfigurationError`).
+* **The .env.example Lockstep Law:** Whenever a configuration property or environment variable is added, updated, or deprecated in code, `.env.example` (and development container orchestrators like `docker-compose.yml`) MUST be updated in the **exact same change or commit**.
+* **Zero Secret Defaults:** Production secrets, private keys, encryption peppers, and database passwords must NEVER have default values in committed source code outside explicit development/test profiles.
+
 ---
 
 ## 3. Module Anatomy, Structure & File Discipline
@@ -408,13 +413,20 @@ Concurrent writes must be governed by an explicit concurrency strategy matched t
   ```
   This ensures deleted records do not block active users from registering with the same unique identifier.
 
-### 6.10 Forward-Only Migration Hygiene & Non-Destructive Schema Evolution
+### 6.10 Forward-Only Migration Hygiene & The Expand/Contract Pattern (Zero-Downtime DDL)
 * **Forward-Only Migrations:** All schema changes ship as versioned, journaled migration files. Hand-installing SQL in databases is strictly forbidden.
 * **Applied Migrations Are Immutable:** Never edit or rename a migration that has been merged or applied. Fix forward with a new compensating migration.
-* **Destructive Change Safety:** Migrations must NEVER silently drop columns or tables containing production data. Dropping fields requires a 3-step migration plan:
-  1. Deprecate and make nullable in code.
-  2. Stop reading/writing in application code.
-  3. Drop column in a subsequent migration after data backup.
+* **The Expand / Contract Law (Zero-Downtime Deployments):** Schema evolution must support rolling updates where previous and new application versions run concurrently against the database:
+  1. **Phase 1 (Expand):** Add new columns as `NULL` or with safe default values (`DEFAULT '...'`). Add new tables. Build indexes `CONCURRENTLY` (outside exclusive table locks). Add foreign key constraints with `NOT VALID` and validate them asynchronously.
+  2. **Phase 2 (Dual-Read/Write & Backfill):** Application code deploys. It reads from new columns with fallback to old, writes to both, and backfills historical data via idempotent background jobs.
+  3. **Phase 3 (Contract):** Once all running instances run on the new code and backfill finishes, drop old columns, deprecated tables, or obsolete indexes in a subsequent, separate migration.
+* **Zero Table-Locking Migrations:** Never execute blocking synchronous `ALTER TABLE ... ADD COLUMN ... NOT NULL` without a default on live production tables. Never run `CREATE INDEX` synchronously on tables exceeding 100,000 rows.
+* **Non-Transactional DDL Execution:** Index creations that require `CONCURRENTLY` cannot run inside standard multi-statement transaction blocks. They must execute outside transactions (e.g. via `*.no_transaction.sql` runners) with idempotent guards (`IF NOT EXISTS`).
+
+### 6.11 Third-Party Integration Fixtures & Raw Payload Ingestion (`tests/fixtures/`)
+* **The Raw Payload Law:** When integrating third-party APIs, webhooks, or callbacks (e.g. Stripe, WhatsApp, Twilio, SendGrid, OAuth identity providers), tests MUST NOT rely exclusively on hand-written, idealized in-memory mock objects.
+* **Immutable Fixture Files:** Actual raw JSON/XML provider payloads (with sensitive production secrets and PII sanitized) MUST be recorded and stored under `tests/fixtures/<provider>_<event>.json`.
+* **Contract Deserialization Tests:** Integration test suites must unmarshal these raw vendor fixtures directly into domain event DTOs/structs to verify that unexpected nulls, missing attributes, nested objects, and string timestamps parse without runtime errors.
 
 ### 6.11 Database Connection Management & Pool Telemetry
 * Use a robust connection pool (e.g. `pg-pool`). Never create a new database connection per HTTP request.
