@@ -267,7 +267,7 @@ Conversational LLM context is ephemeral. Chat history is wiped or degraded when 
 
 Furthermore, mixing live in-flight tasks with long-term backlogs, past decisions, and audit reports bloats context and causes agent amnesia. Every repository governed by this standard enforces a strict **Hot vs Cold Memory Separation**.
 
-| Dimension | 🔴 Ephemeral Chat Memory (Fragile) | 🟢 Universal Documentation System (Durable) |
+| Dimension | Ephemeral Chat Memory (Fragile) | Universal Documentation System (Durable) |
 | :--- | :--- | :--- |
 | **Cross-Session Retention** | Lost upon `/clear`, `/compact`, or session reset | 100% preserved on disk across weeks |
 | **Multi-Device Sync** | Trapped in local chat client session | Synchronized via git across workstations |
@@ -282,16 +282,16 @@ project-root/
 ├── AGENTS.md                  <-- AI Rules, Constraints & Quality Gates
 ├── SPEC.md (or SPECS.md)      <-- Single Source of Truth: Product & Architecture Contract
 │
-├── TASK.md                    <-- 🔥 [HOT] Live State Machine (Strictly <= 30-40 lines)
+├── TASK.md                    <-- [HOT] Live State Machine (Strictly <= 30-40 lines)
 │
-└── docs/                      <-- ❄️ [COLD] Permanent Knowledge Base
-    ├── BACKLOG.md             <-- 💡 Future Features, Unscheduled Ideas & Product Roadmap
-    ├── AUDIT_BACKLOG.md       <-- 🔍 Code Smells, Bugs, Security Audit findings & Tech Debt
-    ├── DECISIONS.md           <-- ⚖️ Living Architecture Decision Records (ADRs)
-    ├── designs/               <-- 📐 Deep Technical Specs, Subsystem Blueprints & RFCs
-    ├── reports/               <-- 📊 Point-in-Time Audits, Benchmarks & Security Reports
+└── docs/                      <-- [COLD] Permanent Knowledge Base
+    ├── BACKLOG.md             <-- Future Features, Unscheduled Ideas & Product Roadmap
+    ├── AUDIT_BACKLOG.md       <-- Code Smells, Bugs, Security Audit findings & Tech Debt
+    ├── DECISIONS.md           <-- Living Architecture Decision Records (ADRs)
+    ├── designs/               <-- Deep Technical Specs, Subsystem Blueprints & RFCs
+    ├── reports/               <-- Point-in-Time Audits, Benchmarks & Security Reports
     └── archive/
-        └── COMPLETED_YYYY_MM.md <-- 📦 Monthly Completed Tasks & Commits Log
+        └── COMPLETED_YYYY_MM.md <-- Monthly Completed Tasks & Commits Log
 ```
 
 ### 9.1 The Live Task State Machine (`TASK.md`) — Hot State
