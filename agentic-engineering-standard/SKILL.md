@@ -261,58 +261,87 @@ Code and architectural documentation must evolve in perfect lockstep.
 
 ---
 
-## 9. Persistent Cross-Session & Multi-Device Memory Architecture (`TASK.md` System)
+## 9. Persistent Memory Architecture & Universal Documentation System (Hot vs Cold)
 
 Conversational LLM context is ephemeral. Chat history is wiped or degraded when context windows compact, when `/clear` is executed, when switching between laptop and desktop workstations, or when resuming after days away. Relying on conversational history for project memory is an architectural failure.
 
-| Dimension | 🔴 Ephemeral Chat Memory (Fragile) | 🟢 File-Backed State Machine (`TASK.md`) |
+Furthermore, mixing live in-flight tasks with long-term backlogs, past decisions, and audit reports bloats context and causes agent amnesia. Every repository governed by this standard enforces a strict **Hot vs Cold Memory Separation**.
+
+| Dimension | 🔴 Ephemeral Chat Memory (Fragile) | 🟢 Universal Documentation System (Durable) |
 | :--- | :--- | :--- |
 | **Cross-Session Retention** | Lost upon `/clear`, `/compact`, or session reset | 100% preserved on disk across weeks |
 | **Multi-Device Sync** | Trapped in local chat client session | Synchronized via git across workstations |
-| **Session Wakeup Cost** | Re-reading 50 files (~20k tokens) | Reading single file in < 500 tokens |
-| **Backlog Preservation** | Mid-task user ideas forgotten in chat history | Captured in `## 3. Queued Tasks` immediately |
+| **Session Wakeup Cost** | Re-reading 50 files (~20k tokens) | Reading single `TASK.md` in < 500 tokens |
+| **Backlog Preservation** | Mid-task user ideas forgotten in chat history | Captured in `docs/BACKLOG.md` immediately |
 | **Audit Traceability** | Disappears when context rolls over | Archived to `docs/archive/` with commit hashes |
+| **Decision Memory** | Re-debating past settled choices | Preserved in `docs/DECISIONS.md` (ADRs) |
 
-### 9.1 The Live Task State Machine (`TASK.md`)
-The single source of truth for active project memory is a dedicated file at the repository root: `TASK.md`. It tracks in-flight intent, queued requests, and pending blockers across all sessions and devices.
+```text
+project-root/
+│
+├── AGENTS.md                  <-- AI Rules, Constraints & Quality Gates
+├── SPEC.md (or SPECS.md)      <-- Single Source of Truth: Product & Architecture Contract
+│
+├── TASK.md                    <-- 🔥 [HOT] Live State Machine (Strictly <= 30-40 lines)
+│
+└── docs/                      <-- ❄️ [COLD] Permanent Knowledge Base
+    ├── BACKLOG.md             <-- 💡 Future Features, Unscheduled Ideas & Product Roadmap
+    ├── AUDIT_BACKLOG.md       <-- 🔍 Code Smells, Bugs, Security Audit findings & Tech Debt
+    ├── DECISIONS.md           <-- ⚖️ Living Architecture Decision Records (ADRs)
+    ├── designs/               <-- 📐 Deep Technical Specs, Subsystem Blueprints & RFCs
+    ├── reports/               <-- 📊 Point-in-Time Audits, Benchmarks & Security Reports
+    └── archive/
+        └── COMPLETED_YYYY_MM.md <-- 📦 Monthly Completed Tasks & Commits Log
+```
 
-### 9.2 The Standard 4-Section Structure
+### 9.1 The Live Task State Machine (`TASK.md`) — Hot State
+The single source of truth for active project memory is a dedicated file at the repository root: `TASK.md`. It tracks in-flight intent, immediate queued requests, and pending blockers across all sessions and devices.
+
+* **Hard Invariant:** `TASK.md` MUST NEVER exceed 30–40 lines (< 2 KB). Completed tasks, historical tables, closed items, and lengthy backlogs must NEVER accumulate in `TASK.md`.
+
 ```markdown
 # Active Task State
 **Last Updated:** YYYY-MM-DD
 
 ## 1. Goal
-<High-level strategic milestone currently being pursued>
+<High-level strategic milestone currently being pursued in 1 line>
 
 ## 2. Active Task
 <The single in-flight item currently being executed>
-- Concrete atomic step 1 (DONE <commit-hash>)
-- Concrete atomic step 2 (ACTIVE)
-- Concrete atomic step 3 (PENDING)
+- [x] Concrete atomic step 1 (DONE <commit-hash>)
+- [ ] Concrete atomic step 2 (ACTIVE)
+- [ ] Concrete atomic step 3 (PENDING)
 
 ## 3. Queued Tasks
-- <Next task with 1-line implementation summary>
-- <Backlogged user request or idea>
+- <Next immediate task 1 with 1-line implementation summary>
+- <Next immediate task 2>
+- Full Backlog: docs/BACKLOG.md | Tech Debt: docs/AUDIT_BACKLOG.md
 
 ## 4. Waiting on User / Blockers
 - <External decision, third-party API credentials, or manual human approval>
 ```
 
-### 9.3 The 5 Operational State Machine Rules
-1. **Task Intake (Zero Lost Requests):** Whenever the user mentions a new feature, improvement, bug, or idea while another task is active, the agent MUST immediately append it to `## 3. Queued Tasks` in `TASK.md`. It is never left to volatile chat memory.
-2. **Task Promotion & Atomic Execution:** When ready to start a task, promote it from `## 3. Queued Tasks` to `## 2. Active Task`, break it down into concrete atomic sub-steps, and update `## 1. Goal`.
-3. **Auto-Archiving Invariant (Zero File Bloat):** Upon completing and committing a task:
-   - In the same step, before starting anything else:
-   - Append a 1-line summary with commit hash to the project's archive (default `docs/archive/COMPLETED_TASKS_YYYY_MM.md`).
+### 9.2 The Cold Knowledge Base (`docs/`) — Durable State
+Long-term plans, audits, architecture designs, and historical decisions belong in structured, dedicated documents under `docs/`:
+
+1. **`docs/BACKLOG.md` (Feature Roadmap):** Unscheduled features, long-term roadmap phases, and future architectural enhancements. When the user mentions an idea mid-flight, append it here.
+2. **`docs/AUDIT_BACKLOG.md` (Technical Debt):** Code smells, security findings, edge-case bugs, and refactoring items discovered during audits.
+3. **`docs/DECISIONS.md` (Living ADRs):** Architecture Decision Records documenting agreed-upon choices, context, rationale, and rejected alternatives (e.g. choice of database, hashing algorithm, queue technology).
+4. **`docs/designs/` (Technical Specs & RFCs):** In-depth subsystem design blueprints, RFCs, and architectural specifications (e.g. `system_design_specification.md`, `payment_gateway_design.md`).
+5. **`docs/reports/` (Point-in-Time Audits & Evaluations):** Date-stamped immutable snapshots of audits, benchmarks, and vulnerability scans (e.g. `YYYY_MM_codebase_production_audit.md`, `load_test_benchmark.md`).
+6. **`docs/archive/COMPLETED_YYYY_MM.md` (Milestone Archive):** Monthly logs of completed features, closed remediation items, and git commit hashes.
+
+### 9.3 The 6 Operational Memory Rules
+1. **Feature Intake (Zero Lost Ideas):** When the user mentions a new feature, extension, or idea while another task is active, append it to `docs/BACKLOG.md` (or `TASK.md ## 3. Queued Tasks` if it is immediate). It is never left to volatile chat memory.
+2. **Audit & Debt Intake:** When an issue, bug, or code smell is noticed outside the active task, append it to `docs/AUDIT_BACKLOG.md`.
+3. **Decision Recording:** When an architectural choice is agreed upon, record the context, decision, and rejected alternatives in `docs/DECISIONS.md`.
+4. **Stop-and-Ask (Blocker Protocol):** When waiting for user input or facing an ambiguous architectural fork, state it explicitly in `TASK.md` under `## 4. Waiting on User / Blockers` and prompt the user.
+5. **Auto-Archiving Invariant (Zero File Bloat):** Upon completing and committing a task:
+   - Append a 1-line summary with commit hash to `docs/archive/COMPLETED_YYYY_MM.md`.
    - Remove the completed task from `TASK.md`.
-   - Promote the next queued task to Active with short step lines and update the goal.
-   - Never append progress into a queued item's description, and never leave a finished task under Active.
-   - **Hard Invariant:** `TASK.md` MUST NEVER exceed 200 lines (< 8 KB). Completed tasks must never accumulate in the active state file.
-4. **Session Orientation on Boot (< 500 Tokens):** Upon starting ANY session or resuming on a new device, the agent's very first action is reading `TASK.md`. The agent restores complete situational awareness in < 500 tokens without scanning the git log, reading directory trees, or grepping files.
-5. **Context Compaction & Reset Protocol:**
-   - When a session context window grows large mid-feature, recommend `/compact`.
-   - After completing and committing a milestone, recommend `/clear` to start fresh with pristine reasoning capability.
-   - The agent cannot run these commands itself, so every report that follows a milestone commit ends with exactly one line: "Run `/clear` now", "Run `/compact` now" or "No clear yet: <reason>".
+   - Promote the next queued task to Active with atomic sub-steps and update the Goal.
+   - Immediately prune `TASK.md` to remain `<= 30–40 lines`.
+6. **Session Orientation on Boot (< 500 Tokens):** Upon starting ANY session or resuming on a new device, the agent's very first action is reading `TASK.md`. The agent restores complete situational awareness in < 500 tokens without scanning the git log, reading directory trees, or grepping files.
 
 ---
 
