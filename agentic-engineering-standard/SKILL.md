@@ -350,13 +350,18 @@ Whenever the user prompts in ANY new or existing repository:
 
 The agent MUST scaffold the complete structure in **a single parallel execution turn**:
 
+* **Pre-existing Specification Invariant:** If `SPEC.md` (or `SPECS.md`) already exists in the repository, the agent **MUST NEVER overwrite or truncate it**. It reads the product goal from the existing `SPEC.md` and initializes `TASK.md` around that goal.
+* If `SPEC.md` does not exist, seed it with the architectural contract outline.
+
+**Generated Files & Structure (Identical Standard in Every Project):**
 1. **Root Files:**
-   - `AGENTS.md`: Agent constitution, code style invariants, verification commands, and Universal Memory protocol.
-   - `SPEC.md`: Product overview, architecture requirements, domain entities, and API contracts.
-   - `TASK.md`: Live state machine (strictly `<= 30 lines`) initialized with Goal, Active Task, Queued Tasks, Blockers.
+   - `AGENTS.md`: Agent constitution, code style invariants, Stop-and-Ask triggers, and Universal Memory operating system.
+   - `CLAUDE.md`: Claude Code entrypoint importing `@AGENTS.md` with master sources of truth and quality gates.
+   - `TASK.md`: Live state machine (strictly `<= 30 lines`) with Goal, Active Task, Queued Tasks, Blockers.
+   - `SPEC.md`: Preserved if present; seeded if absent.
 2. **Cold Knowledge Base (`docs/`):**
    - `docs/BACKLOG.md`: Product roadmap and unscheduled feature backlog.
-   - `docs/AUDIT_BACKLOG.md`: Technical debt and code smells table.
+   - `docs/AUDIT_BACKLOG.md`: Technical debt and code smells tracking table.
    - `docs/DECISIONS.md`: Living ADR document initialized with template.
    - `docs/designs/`: Subsystem design specs directory (with `.gitkeep`).
    - `docs/reports/`: Point-in-time audit reports directory (with `.gitkeep`).
