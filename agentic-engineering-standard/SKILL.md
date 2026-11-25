@@ -343,6 +343,27 @@ Long-term plans, audits, architecture designs, and historical decisions belong i
    - Immediately prune `TASK.md` to remain `<= 30–40 lines`.
 6. **Session Orientation on Boot (< 500 Tokens):** Upon starting ANY session or resuming on a new device, the agent's very first action is reading `TASK.md`. The agent restores complete situational awareness in < 500 tokens without scanning the git log, reading directory trees, or grepping files.
 
+### 9.4 Single-Prompt Repository Bootstrap Protocol (Day-0 Setup)
+
+Whenever the user prompts in ANY new or existing repository:
+> **"Initialize universal documentation and memory system"** (or *"Setup repo memory"*, *"Bootstrap agentic docs"*):
+
+The agent MUST scaffold the complete structure in **a single parallel execution turn**:
+
+1. **Root Files:**
+   - `AGENTS.md`: Agent constitution, code style invariants, verification commands, and Universal Memory protocol.
+   - `SPEC.md`: Product overview, architecture requirements, domain entities, and API contracts.
+   - `TASK.md`: Live state machine (strictly `<= 30 lines`) initialized with Goal, Active Task, Queued Tasks, Blockers.
+2. **Cold Knowledge Base (`docs/`):**
+   - `docs/BACKLOG.md`: Product roadmap and unscheduled feature backlog.
+   - `docs/AUDIT_BACKLOG.md`: Technical debt and code smells table.
+   - `docs/DECISIONS.md`: Living ADR document initialized with template.
+   - `docs/designs/`: Subsystem design specs directory (with `.gitkeep`).
+   - `docs/reports/`: Point-in-time audit reports directory (with `.gitkeep`).
+   - `docs/archive/COMPLETED_YYYY_MM.md`: Active month archive file initialized.
+
+A helper automation script is available at `scripts/init-repo-memory.sh` to execute this scaffolding instantaneously.
+
 ---
 
 ## 10. Test-Based Coding & Test-Driven Development (TDD) for Agents
