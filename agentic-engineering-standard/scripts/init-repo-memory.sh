@@ -15,16 +15,20 @@ if [ ! -d ".git" ]; then
   echo "Initialized git repository"
 fi
 
-# 1. Add .skills submodule if missing
-if [ ! -d ".skills" ]; then
-  echo "Adding .skills submodule (git@github.com:md-asharaf/skills.git)..."
-  if git submodule add git@github.com:md-asharaf/skills.git .skills 2>/dev/null; then
-    echo "Added .skills submodule via SSH"
-  elif git submodule add https://github.com/md-asharaf/skills.git .skills 2>/dev/null; then
-    echo "Added .skills submodule via HTTPS"
-  else
-    echo "Note: could not add .skills submodule automatically (network or git auth); configure manually if needed"
+# 1. Setup .skills as a gitignored local symlink if central skills repository exists
+SKILLS_SOURCE="${HOME}/coding/skills"
+if [ -d "$SKILLS_SOURCE" ] && [ ! -e ".skills" ]; then
+  ln -s "$SKILLS_SOURCE" .skills
+  echo "Mounted gitignored .skills symlink -> $SKILLS_SOURCE"
+fi
+
+# Ensure .skills is in .gitignore so project git history remains 100% pure (zero submodule churn)
+if [ -f ".gitignore" ]; then
+  if ! grep -q "^.skills" .gitignore; then
+    echo -e "\n# Shared agent skills (gitignored local symlink)\n.skills/\n.skills" >> .gitignore
   fi
+else
+  echo -e "# Shared agent skills (gitignored local symlink)\n.skills/\n.skills" > .gitignore
 fi
 
 # 2. Create directory structure

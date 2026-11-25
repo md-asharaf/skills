@@ -355,8 +355,8 @@ The agent MUST scaffold or reorganize the complete structure in **a single paral
 * **Clutter Migration Law (Existing Repos):** In existing repositories, the agent scans for scattered TODOs, design notes, audit lists, and bloated task files, moving them into their rightful homes (`docs/BACKLOG.md`, `docs/AUDIT_BACKLOG.md`, `docs/DECISIONS.md`, `docs/designs/`, `docs/reports/`, `docs/archive/`) and shrinks `TASK.md` to `<= 30 lines`.
 
 **Generated Files & Structure (Identical Standard in Every Project):**
-1. **Submodule & Standards:**
-   - Adds `.skills/` as a git submodule (`git submodule add git@github.com:md-asharaf/skills.git .skills`) so that engineering standards are version-controlled directly in git, easily editable, and shareable.
+1. **Shared Standards & Zero-Pollution Linking:**
+   - Mounts `.skills/` as a gitignored local symlink (`ln -s ~/coding/skills .skills`) and ensures `.skills` is in `.gitignore`. This keeps project git history 100% pure (eliminating submodule pointer churn) while providing instant IDE browsing and global discovery via `~/.gemini/config/skills/` and `~/.agents/skills/`. Central version control lives exclusively in `git@github.com:md-asharaf/skills.git`.
 2. **Root Files:**
    - `AGENTS.md`: Agent constitution, code style invariants, Stop-and-Ask triggers, and Universal Memory operating system.
    - `CLAUDE.md`: Claude Code entrypoint importing `@AGENTS.md` with master sources of truth and quality gates.
