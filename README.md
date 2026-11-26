@@ -15,6 +15,10 @@ This directory contains the universal, framework-agnostic engineering standards 
 
 ---
 
+## Enforcement
+
+Rules only hold when something outside the agent checks them. [`agentic-engineering-standard/enforcement/README.md`](./agentic-engineering-standard/enforcement/README.md) sets up the five layers for every machine and project: root-owned managed settings with a guard hook, directory `CLAUDE.md` imports of the standards, project gates, CI, and owner review before push.
+
 ## Usage Guidelines
 
 - **For AI Agents:** These files follow the standard `SKILL.md` format (YAML frontmatter + markdown body) and can be loaded directly as agent skills or inspected as architectural specifications.

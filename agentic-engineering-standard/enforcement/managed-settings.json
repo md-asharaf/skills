@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git push)",
+      "Bash(git push *)",
+      "Bash(* git push *)",
+      "Bash(*--no-verify*)",
+      "Bash(git filter-branch *)",
+      "Bash(git filter-repo *)",
+      "Bash(*drizzle-kit migrate*)",
+      "Bash(*drizzle-kit push*)"
+    ],
+    "ask": [
+      "Edit(**/.husky/**)",
+      "Edit(**/eslint.config.*)",
+      "Edit(**/biome.json)",
+      "Edit(**/biome.jsonc)",
+      "Edit(**/.github/workflows/**)",
+      "Edit(**/scripts/verify*)",
+      "Edit(**/scripts/verify/**)",
+      "Edit(**/.claude/settings.json)",
+      "Edit(**/.claude/settings.local.json)",
+      "Edit(**/HARD-RULES.md)",
+      "Edit(**/agentic-engineering-standard/enforcement/**)"
+    ],
+    "disableBypassPermissionsMode": "disable"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/etc/claude-code/hooks/guard.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "claudeMd": "# Owner rules (installed by the owner in /etc/claude-code; the agent cannot change them)\n\n1. Before the first code edit of a task, read the project's rules for the area you touch (directory CLAUDE.md, AGENTS.md, the matching sections of the .skills standards) and find the existing pattern in the repository for every side effect and query. Write the Primary Source Inspection Log (sections read, pattern files followed) in chat before that edit, not only in the final report.\n2. External side effects (email, SMS, webhooks, payment or provider calls) go only through the project's job or outbox mechanism. Never fire-and-forget, never inside a database transaction.\n3. Database work is set-based: read each table once per request, run batch work in a constant number of statements, keep checks under one lock in one statement, lock rows in id order, and let constraints reject conflicts instead of reading first.\n4. Never edit, weaken or bypass gates, hooks, lint rules, CI workflows, allowlists or permission settings unless the user asked for that exact change. Never push. Never apply migrations or run SQL against a real database.\n5. Never claim a check passed unless you ran it in this session and saw exit 0.\n6. When you miss a rule, say so plainly and propose the lint rule, check or test that would have caught it."
+}
