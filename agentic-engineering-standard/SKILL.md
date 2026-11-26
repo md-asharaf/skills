@@ -425,7 +425,7 @@ The agent MUST scaffold or reorganize the complete structure in **a single paral
    - `docs/reports/`: Point-in-time audit reports directory (with `.gitkeep`).
    - `docs/archive/COMPLETED_YYYY_MM.md`: Active month archive file initialized.
 
-A helper automation script is available at `scripts/init-repo-memory.sh` to execute this scaffolding instantaneously.
+**One command for every project.** The `project-setup` skill (`/project-setup`, or "setup project") runs `scripts/setup-project.sh`: `--check` reports what is missing, a plain run creates only missing files and inserts missing directory imports, never overwriting `SPEC.md`, `AGENTS.md`, `CLAUDE.md` or any other file. It also adds the enforcement layers of `enforcement/README.md` (backend and frontend standards imported in the server and UI folders' `CLAUDE.md`) and lists what is still missing (CI, pre-commit hook, type-aware lint) and the owner actions (installing the managed layer with sudo, branch protection, pushing). The session-start check of the managed layer offers it in any repository that is not set up.
 
 ---
 

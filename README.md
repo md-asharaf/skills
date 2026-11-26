@@ -12,6 +12,7 @@ This directory contains the universal, framework-agnostic engineering standards 
 | **`frontend-engineering-standard`** | UI/UX craftsmanship, zero inline HTML primitives, custom primitive taxonomy, 5 mandatory view lifecycle states, design token exclusivity, responsive design down to 320px, and WCAG 2.2 AA accessibility. | [`frontend-engineering-standard/SKILL.md`](./frontend-engineering-standard/SKILL.md) |
 | **`universal-enterprise-monorepo`** | Multi-package workspace topology (`apps/*` vs `packages/*`), dependency DAG invariants, workspace protocol (`workspace:*`), Turborepo/Nx pipeline orchestration, shared configurations, and Docker pruning. | [`universal-enterprise-monorepo/SKILL.md`](./universal-enterprise-monorepo/SKILL.md) |
 | **`agentic-engineering-standard`** | How an AI agent works in any project: token and context hygiene, honest verification, targeted gates, stop-and-ask, git and commits, `TASK.md` state machine, test-driven process, decision standard, plus the code invariants shared by every language (zero comments, type safety, zero suppressions, plain naming). Suitable to import into a `CLAUDE.md`. | [`agentic-engineering-standard/SKILL.md`](./agentic-engineering-standard/SKILL.md) |
+| **`project-setup`** | One command (`/project-setup`) that brings any new or existing repository to these standards: memory files in the mandatory schemas, directory imports of the backend and frontend standards, gate and CI gaps, and the owner actions. | [`project-setup/SKILL.md`](./project-setup/SKILL.md) |
 
 ---
 

@@ -16,11 +16,13 @@ Run these yourself. The agent has no sudo, so it cannot change them afterwards.
 
 ```bash
 sudo install -d -m 755 /etc/claude-code/hooks
-sudo install -m 755 ~/coding/skills/agentic-engineering-standard/enforcement/hooks/guard.py /etc/claude-code/hooks/guard.py
+sudo install -m 755 ~/coding/skills/agentic-engineering-standard/enforcement/hooks/guard.py ~/coding/skills/agentic-engineering-standard/enforcement/hooks/session-check.py /etc/claude-code/hooks/
 sudo install -m 644 ~/coding/skills/agentic-engineering-standard/enforcement/managed-settings.json /etc/claude-code/managed-settings.json
 ```
 
-Start a new Claude Code session and check with `/permissions` and `/hooks` that the managed rules and the guard hook are listed. When you change either file in this folder, run the same commands again: the copies in `/etc/claude-code` are what counts.
+Start a new Claude Code session and check with `/permissions` and `/hooks` that the managed rules and both hooks are listed. When you change a file in this folder, run the same commands again: the copies in `/etc/claude-code` are what counts. `setup-project.sh` tells you when they are out of date. After any change to `guard.py`, run `hooks/guard_test.py`; every case must pass.
+
+The session-start check (`hooks/session-check.py`) runs in every repository: when `.skills`, `TASK.md`, `AGENTS.md` or `docs/AUDIT_BACKLOG.md` is missing, it tells the agent to say so and offer `/project-setup` before any other work.
 
 What the guard does (`hooks/guard.py`, run before every shell command and file edit):
 
@@ -29,7 +31,7 @@ What the guard does (`hooks/guard.py`, run before every shell command and file e
 
 You push yourself after reading the diff: type `! git push` in the session, or push from your own terminal.
 
-## 2. Load the standards by directory (once per project)
+## 2. Load the standards by directory (once per project, done by `/project-setup`)
 
 Claude Code loads a folder's `CLAUDE.md` when the agent works on files in that folder. Put the standard there, so it is in context without the agent having to remember it:
 

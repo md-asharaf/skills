@@ -32,30 +32,57 @@ WRITE_MARKERS = [
     r"write_text|write_bytes|writeFile|\.write\(",
 ]
 
+GIT_COMMAND = re.compile(
+    r"^\s*(?:\w+=\S*\s+)*git(?:\s+-[Cc]\s+\S+|\s+--\S+=\S+)*\s+(?P<rest>.*)$"
+)
+
+GIT_DENY = [
+    (r"^push\b", "Pushing is done by the user after reviewing the diff. Ask the user to run `! git push`."),
+    (r"^commit\b.*\s-[a-zA-Z]*n[a-zA-Z]*(\s|$)", "`git commit -n` skips hooks; hooks are never bypassed."),
+    (r"^filter-(branch|repo)\b", "Rewriting history needs the user."),
+    (r"^config\b.*\bcore\.hooksPath\b", "Hooks are never redirected."),
+]
+
+GIT_ASK = [
+    (r"^reset\b.*--hard", "Discards work."),
+    (r"^rebase\b", "Rewrites history."),
+    (r"^clean\b.*\s-[a-zA-Z]*f", "Deletes untracked files."),
+    (r"^checkout\b\s+(--\s|\.\s*$)", "Discards changes."),
+    (r"^restore\b", "Discards changes."),
+    (r"^branch\b.*\s-D\b", "Deletes a branch."),
+]
+
 DENY = [
-    (r"\bgit\b[^|;&]*\bpush\b", "Pushing is done by the user after reviewing the diff. Ask the user to run `! git push`."),
     (r"--no-verify", "Hooks are never bypassed."),
-    (r"\bHUSKY=0\b|\bHUSKY_SKIP", "Hooks are never bypassed."),
-    (r"\bgit\b[^|;&]*\bcommit\b[^|;&]*\s-[a-zA-Z]*n[a-zA-Z]*(\s|$)", "`git commit -n` skips hooks; hooks are never bypassed."),
-    (r"\bgit\b[^|;&]*\bfilter-(branch|repo)\b", "Rewriting history needs the user."),
+    (r"(^|\s)HUSKY=0\b|\bHUSKY_SKIP", "Hooks are never bypassed."),
     (r"\bdrizzle-kit\s+(migrate|push)\b|\bdb:(migrate|push)\b", "Migrations are applied by the user."),
-    (r"--dangerously-skip-permissions|bypassPermissions", "Permission checks are never bypassed."),
-    (r"\bcore\.hooksPath\b", "Hooks are never redirected."),
+    (r"--dangerously-skip-permissions", "Permission checks are never bypassed."),
 ]
 
 ASK = [
-    (r"\bgit\b[^|;&]*\breset\b[^|;&]*--hard", "Discards work."),
-    (r"\bgit\b[^|;&]*\brebase\b", "Rewrites history."),
-    (r"\bgit\b[^|;&]*\bclean\b[^|;&]*-[a-zA-Z]*f", "Deletes untracked files."),
-    (r"\bgit\b[^|;&]*\bcheckout\b\s+(--\s|\.\s*$)", "Discards changes."),
-    (r"\bgit\b[^|;&]*\brestore\b", "Discards changes."),
-    (r"\bgit\b[^|;&]*\bbranch\b[^|;&]*\s-D\b", "Deletes a branch."),
     (r"\brm\s+-[a-zA-Z]*r[a-zA-Z]*f|\brm\s+-[a-zA-Z]*f[a-zA-Z]*r", "Deletes files recursively."),
-    (r"\bpsql\b|\bpg_restore\b|\bdropdb\b", "Runs SQL against a database."),
+    (r"(^|[;&|]\s*)(psql|pg_restore|dropdb)\b", "Runs SQL against a database."),
 ]
+
+SEGMENT_SPLIT = re.compile(r"\n|;|&&|\|\||\||\$\(|`")
+
+
+def git_verdict(command: str, rules: list[tuple[str, str]]) -> str | None:
+    for segment in SEGMENT_SPLIT.split(command):
+        match = GIT_COMMAND.match(segment)
+        if not match:
+            continue
+        rest = match.group("rest")
+        for pattern, reason in rules:
+            if re.search(pattern, rest):
+                return reason
+    return None
 
 
 def decide(command: str) -> tuple[str, str] | None:
+    reason = git_verdict(command, GIT_DENY)
+    if reason:
+        return "deny", reason
     for pattern, reason in DENY:
         if re.search(pattern, command):
             return "deny", reason
@@ -63,6 +90,9 @@ def decide(command: str) -> tuple[str, str] | None:
         re.search(marker, command) for marker in WRITE_MARKERS
     ):
         return "ask", "This command may change a gate, hook, lint, CI or permission file. Only the user approves such changes."
+    reason = git_verdict(command, GIT_ASK)
+    if reason:
+        return "ask", reason
     for pattern, reason in ASK:
         if re.search(pattern, command):
             return "ask", reason
