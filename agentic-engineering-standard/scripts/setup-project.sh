@@ -206,7 +206,7 @@ import sys
 path, line = sys.argv[1], sys.argv[2]
 lines = open(path).read().splitlines(True)
 at = 1 if lines and lines[0].startswith("#") else 0
-block = ["\n", line + "\n"]
+block = (["\n"] if at else []) + [line + "\n"]
 if at >= len(lines) or lines[at].strip():
     block.append("\n")
 lines[at:at] = block
