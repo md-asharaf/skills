@@ -81,6 +81,8 @@ FILE_CASES = [
     ("/x/.cursor/rules/standards.mdc", "ask"),
     ("/x/docs/DECISIONS.md", "allow"),
     ("/x/TASK.md", "allow"),
+    ("/x/.gitleaksignore", "ask"),
+    ("/x/scripts/checks/rules-allow.txt", "ask"),
 ]
 
 

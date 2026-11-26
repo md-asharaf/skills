@@ -28,6 +28,7 @@ PROTECTED_PATHS = [
     r"(^|/)biome\.jsonc?",
     r"(^|/)\.?stylelintrc|(^|/)stylelint\.config\.",
     r"(^|/)\.?cspell\.json|(^|/)cspell\.config\.",
+    r"(^|/)\.gitleaksignore|(^|/)\.?gitleaks\.toml",
     r"(^|/)tsconfig[\w.-]*\.json",
     r"(^|/)\.dependency-cruiser",
     r"(^|/)(\.)?ruff\.toml|(^|/)mypy\.ini|(^|/)pyrightconfig\.json|(^|/)\.importlinter|(^|/)setup\.cfg",
