@@ -321,15 +321,70 @@ The single source of truth for active project memory is a dedicated file at the 
 - <External decision, third-party API credentials, or manual human approval>
 ```
 
-### 9.2 The Cold Knowledge Base (`docs/`) — Durable State
-Long-term plans, audits, architecture designs, and historical decisions belong in structured, dedicated documents under `docs/`:
+### 9.2 The Cold Knowledge Base (`docs/`) — Durable State & Mandatory Schemas
+Long-term plans, audits, architecture designs, and historical decisions belong in structured, dedicated documents under `docs/`. **Every repository MUST follow these exact filenames, schemas, and section structures** (zero ad-hoc formats, zero loose files at `docs/` root):
 
-1. **`docs/BACKLOG.md` (Feature Roadmap):** Unscheduled features, long-term roadmap phases, and future architectural enhancements. When the user mentions an idea mid-flight, append it here.
-2. **`docs/AUDIT_BACKLOG.md` (Technical Debt):** Code smells, security findings, edge-case bugs, and refactoring items discovered during audits.
-3. **`docs/DECISIONS.md` (Living ADRs):** Architecture Decision Records documenting agreed-upon choices, context, rationale, and rejected alternatives (e.g. choice of database, hashing algorithm, queue technology).
-4. **`docs/designs/` (Technical Specs & RFCs):** In-depth subsystem design blueprints, RFCs, and architectural specifications (e.g. `system_design_specification.md`, `payment_gateway_design.md`).
-5. **`docs/reports/` (Point-in-Time Audits & Evaluations):** Date-stamped immutable snapshots of audits, benchmarks, and vulnerability scans (e.g. `YYYY_MM_codebase_production_audit.md`, `load_test_benchmark.md`).
-6. **`docs/archive/COMPLETED_YYYY_MM.md` (Milestone Archive):** Monthly logs of completed features, closed remediation items, and git commit hashes.
+1. **Strict Naming & Directory Hygiene:**
+   - `docs/` root holds **ONLY**: `README.md`, `BACKLOG.md`, `AUDIT_BACKLOG.md`, `DECISIONS.md`.
+   - `docs/designs/<topic_snake_case>.md` — Deep technical blueprints, RFCs, subsystem specs, setup guides.
+   - `docs/reports/YYYY_MM_<topic_snake_case>.md` — Point-in-time audits, benchmarks, security scans (raw `.json`/`.log` dumps go under `docs/reports/benchmarks/`).
+   - `docs/archive/COMPLETED_YYYY_MM.md` — Monthly completed tasks & closed items log.
+
+2. **`docs/AUDIT_BACKLOG.md` (1 Unified Table, 4 Strict Types):**
+   - Allowed `Type` values (strictly 4): `FIX` · `VERIFY` · `DECIDE` · `WATCH` (never invent ad-hoc types like `defect-R`, `risk`, `gap`; put domain tags like `[security]` inside `Summary` if needed).
+   ```markdown
+   # Audit Backlog
+
+   | ID | Type | Date | Source | Where | Summary |
+   | :--- | :--- | :--- | :--- | :--- | :--- |
+   | OI-01 | FIX | YYYY-MM-DD | Audit / Review | `path/to/file.ts:line` | Concise issue & required fix |
+
+   ## Counts
+   - FIX: 0 | VERIFY: 0 | DECIDE: 0 | WATCH: 0 | Total: 0
+   ```
+
+3. **`docs/BACKLOG.md` (3 Fixed Sections):**
+   ```markdown
+   # Product Backlog & Roadmap
+
+   ## 1. Scheduled Phases
+   | Phase | Target | Scope | Design Doc |
+   | :--- | :--- | :--- | :--- |
+
+   ## 2. Queued Features
+   - **Feature Name:** 1–2 line scope + `docs/designs/<topic>.md`
+
+   ## 3. Parked Ideas
+   - YYYY-MM-DD: 1-line unscheduled idea
+   ```
+
+4. **`docs/DECISIONS.md` (Chronological ADRs):**
+   - Never leave `DECISIONS.md` as an empty redirect; store every architectural/product choice here.
+   ```markdown
+   # Architecture Decision Records (ADRs)
+
+   ## ADR-001: <Short Title> (YYYY-MM-DD)
+   - **Context:** What problem or fork forced this choice
+   - **Decision:** What was chosen
+   - **Rejected:** Alternatives rejected and why
+   - **Status:** Proposed | Approved | Implemented (`SPEC.md §X`) | Superseded by ADR-NNN
+   ```
+
+5. **`docs/archive/COMPLETED_YYYY_MM.md` (2 Fixed Sections Only — Zero Clutter Law):**
+   - **Never** dump raw `TASK.md` snapshots, multi-KB single-line prose walls, or full benchmark tables into `COMPLETED_YYYY_MM.md`. Move long-form benchmarks/audits into `docs/reports/` or `docs/designs/` and link them.
+   ```markdown
+   # Completed Tasks — YYYY-MM
+
+   ## 1. Completed Milestones & Commits
+   - YYYY-MM-DD | `<hash/branch>` | **<Task/Scope>:** 1–2 line summary; verification; spec/docs touched.
+
+   ## 2. Closed Audit Items
+   | ID | Closed | Outcome | Commit | Summary |
+   | :--- | :--- | :--- | :--- | :--- |
+   ```
+
+6. **Lossless Migration Rule:**
+   - When normalizing or extracting cluttered docs, **zero details may be discarded**: every commit hash, item ID, migration number, benchmark metric, and decision must move into its rightful `docs/` home (`designs/`, `reports/`, `DECISIONS.md`, `AUDIT_BACKLOG.md`, `BACKLOG.md`, or `COMPLETED_YYYY_MM.md`), verified programmatically.
 
 ### 9.3 The 6 Operational Memory Rules
 1. **Feature Intake (Zero Lost Ideas):** When the user mentions a new feature, extension, or idea while another task is active, append it to `docs/BACKLOG.md` (or `TASK.md ## 3. Queued Tasks` if it is immediate). It is never left to volatile chat memory.
