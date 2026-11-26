@@ -10,6 +10,32 @@ Written rules alone are not enough: an agent can skip a rule it has not loaded, 
 | 4. CI on the remote | Owner | Anything that slipped past the local hook, on a machine the agent never touches |
 | 5. Owner review of every diff before push | Owner | Judgement rules no check can detect (wrong pattern, needless reads, unclear names) |
 
+## Quick start
+
+**Once per machine** (needs `git`, `python3`, Claude Code, and SSH access to `github.com:md-asharaf/skills`):
+
+```bash
+git clone git@github.com:md-asharaf/skills.git ~/coding/skills   # skip when it is already there
+~/coding/skills/agentic-engineering-standard/scripts/install-machine.sh
+```
+
+Then run the sudo lines the installer prints (the managed layer), and start a new Claude Code session.
+
+**In any project, what to type:**
+
+| Situation | Type |
+| :--- | :--- |
+| New, empty folder | `/project-setup`, then describe the product so the agent writes `SPEC.md` with you before any feature work |
+| Existing project, never set up (the session-start check says so) | `/project-setup` |
+| Existing project, set up before; after changing the skills repository, adding an app, or a new language | `/project-setup` (it reports drift and adds only what is missing) |
+| Folder holding several separate repositories | `/project-setup` in the folder (each repository is set up on its own) |
+| Detection got a part wrong | `/project-setup --backend <dir> --frontend <dir>` |
+| Someone else's repository (client or team) | `/project-setup`; agent files stay local, gates and CI are proposed to the repository's owners |
+| Daily work after setup | Ask for the task in plain words. The rules, imports, hooks and gates apply on their own |
+| After the agent commits | Read `git diff origin/main..HEAD`, then `! git push` |
+
+The skills folder is shared by every project through the `.skills` link, so a change there reaches every project at once; rerun the managed-layer sudo lines when `managed-settings.json` or a hook changes (`setup-project.sh` and `install-machine.sh` tell you).
+
 ## 1. Install the managed layer (once per machine)
 
 Run these yourself. The agent has no sudo, so it cannot change them afterwards.
@@ -61,7 +87,7 @@ Allowlists and gate configuration are gate files: the guard asks you before the 
 
 ## 4. CI
 
-Copy `ci/verify.yml` to `.github/workflows/verify.yml` and set the commands. Protect the default branch so the check must pass, and require your review for changes under `.github/`.
+Copy `ci/verify.yml` to `.github/workflows/verify.yml` (or the same three steps for GitLab, Bitbucket or Jenkins), replace the `Toolchain` step with the project's languages, and keep the single `./scripts/gates.sh ci` step (`GATES.md`). Protect the default branch so the check must pass, and require your review for changes under `.github/`.
 
 ## 5. Owner review
 

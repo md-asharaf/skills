@@ -12,16 +12,16 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Static gates
-        run: pnpm run verify:quick
-      - name: Unit tests
-        run: pnpm test:unit
+          fetch-depth: 0
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Toolchain
+        run: echo "Replace this step with the setup actions of the project's languages (see GATES.md, CI toolchains)."
+      - name: Gates
+        run: ./scripts/gates.sh ci

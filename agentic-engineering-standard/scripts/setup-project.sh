@@ -3,15 +3,39 @@ set -euo pipefail
 
 SKILLS_SOURCE="${HOME}/coding/skills"
 ENFORCEMENT="${SKILLS_SOURCE}/agentic-engineering-standard/enforcement"
+SCRIPTS="${SKILLS_SOURCE}/agentic-engineering-standard/scripts"
 MODE="setup"
 TARGET_DIR="."
-for arg in "$@"; do
-  case "$arg" in
+FORCED_BACKEND=()
+FORCED_FRONTEND=()
+while [ $# -gt 0 ]; do
+  case "$1" in
     --check) MODE="check" ;;
-    *) TARGET_DIR="$arg" ;;
+    --backend) FORCED_BACKEND+=("$2"); shift ;;
+    --frontend) FORCED_FRONTEND+=("$2"); shift ;;
+    *) TARGET_DIR="$1" ;;
   esac
+  shift
 done
 cd "$TARGET_DIR"
+
+if [ ! -d .git ] && ! git rev-parse --git-dir >/dev/null 2>&1; then
+  CHILD_REPOS=()
+  for child in */; do
+    [ -d "${child}.git" ] && CHILD_REPOS+=("${child%/}")
+  done
+  if [ ${#CHILD_REPOS[@]} -gt 0 ]; then
+    echo "$(pwd) is a folder of ${#CHILD_REPOS[@]} separate repositories: ${CHILD_REPOS[*]}. Setting up each one on its own; nothing is created in this folder."
+    echo
+    for child in "${CHILD_REPOS[@]}"; do
+      args=()
+      [ "$MODE" = "check" ] && args+=(--check)
+      "$0" "${args[@]}" "$(pwd)/${child}"
+      echo
+    done
+    exit 0
+  fi
+fi
 
 MONTH=$(date +"%Y_%m")
 MONTH_DASH=$(date +"%Y-%m")
@@ -194,20 +218,61 @@ PY
   CREATED+=("${file} import of ${standard}")
 }
 
-for dir in apps/api apps/server apps/backend api server backend services/api; do
-  link_standard "$dir" backend-engineering-standard "Server rules"
-done
-for dir in apps/web apps/dashboard apps/admin apps/frontend apps/client web client frontend dashboard; do
-  link_standard "$dir" frontend-engineering-standard "UI rules"
-done
-
-if ls .github/workflows/*.y*ml >/dev/null 2>&1; then :; else MISSING+=("CI workflow (template: ${ENFORCEMENT}/ci/verify.yml, fill in the project commands)"); fi
-if [ -f .husky/pre-commit ] || [ -f lefthook.yml ] || [ -x .git/hooks/pre-commit ]; then :; else MISSING+=("pre-commit hook running the project gates"); fi
-if [ -f package.json ] && grep -q '"typescript"' package.json 2>/dev/null; then
-  if ! grep -rqs "no-floating-promises" eslint.config.* .eslintrc* 2>/dev/null; then
-    MISSING+=("type-aware lint: @typescript-eslint/no-floating-promises with ignoreVoid false, and no-misused-promises")
-  fi
+DETECTED=$(python3 "${SCRIPTS}/detect-project.py" .)
+ECOSYSTEMS=$(python3 -c "import json,sys;print(', '.join(json.loads(sys.argv[1])['ecosystems']) or 'none detected')" "$DETECTED")
+if [ ${#FORCED_BACKEND[@]} -gt 0 ] || [ ${#FORCED_FRONTEND[@]} -gt 0 ]; then
+  BACKEND_DIRS=("${FORCED_BACKEND[@]}")
+  FRONTEND_DIRS=("${FORCED_FRONTEND[@]}")
+else
+  mapfile -t BACKEND_DIRS < <(python3 -c "import json,sys;[print(p['dir']) for p in json.loads(sys.argv[1])['parts'] if 'backend' in p['roles']]" "$DETECTED")
+  mapfile -t FRONTEND_DIRS < <(python3 -c "import json,sys;[print(p['dir']) for p in json.loads(sys.argv[1])['parts'] if 'frontend' in p['roles']]" "$DETECTED")
 fi
+for dir in "${BACKEND_DIRS[@]}"; do
+  [ -n "$dir" ] && link_standard "$dir" backend-engineering-standard "Server rules"
+done
+for dir in "${FRONTEND_DIRS[@]}"; do
+  [ -n "$dir" ] && link_standard "$dir" frontend-engineering-standard "UI rules"
+done
+if python3 -c "import json,sys;sys.exit(0 if json.loads(sys.argv[1])['workspace'] else 1)" "$DETECTED"; then
+  link_standard . universal-enterprise-monorepo "Repository rules"
+fi
+if [ ${#BACKEND_DIRS[@]} -eq 0 ] && [ ${#FRONTEND_DIRS[@]} -eq 0 ]; then
+  MISSING+=("no server or UI part detected: rerun with --backend <dir> and/or --frontend <dir> once the code exists")
+fi
+
+if ls .github/workflows/*.y*ml .gitlab-ci.yml .gitlab-ci.yaml .circleci/config.yml Jenkinsfile azure-pipelines.yml bitbucket-pipelines.yml >/dev/null 2>&1; then :; else
+  MISSING+=("CI that runs the gates (start from ${ENFORCEMENT}/ci/verify.yml)")
+fi
+if grep -rqs "Replace this step with the setup actions" .github .gitlab-ci.yml 2>/dev/null; then
+  MISSING+=("CI still has the template Toolchain step: replace it with the project's language setup")
+fi
+if [ ! -x scripts/gates.sh ]; then
+  MISSING+=("scripts/gates.sh with 'staged' and 'ci' modes, called by both the pre-commit hook and CI (GATES.md)")
+fi
+if [ -f .husky/pre-commit ] || [ -f lefthook.yml ] || [ -f lefthook.yaml ] || [ -f .pre-commit-config.yaml ] || [ -x .git/hooks/pre-commit ]; then :; else
+  MISSING+=("pre-commit hook running the fast gates on staged files")
+fi
+if [ -f .husky/commit-msg ] || grep -qs "commit-msg" lefthook.y*ml .pre-commit-config.yaml 2>/dev/null || [ -x .git/hooks/commit-msg ]; then :; else
+  MISSING+=("commit-msg hook (single-line Conventional Commit)")
+fi
+if ! grep -rqs "gitleaks\|trufflehog" .husky .pre-commit-config.yaml lefthook.y*ml .github .gitlab-ci.yml 2>/dev/null; then
+  MISSING+=("secret scan (gitleaks) in the hook and CI")
+fi
+if ! ls cspell.json .cspell.json cspell.config.* >/dev/null 2>&1; then
+  MISSING+=("jargon check (cspell with flagWords)")
+fi
+case ",${ECOSYSTEMS}," in *typescript*)
+  grep -rqs "no-floating-promises" --include='eslint.config.*' --include='.eslintrc*' --exclude-dir=node_modules --exclude-dir=.skills --exclude-dir=dist . 2>/dev/null \
+    || MISSING+=("typescript: @typescript-eslint/no-floating-promises (ignoreVoid false) and no-misused-promises");;
+esac
+case ",${ECOSYSTEMS}," in *python*)
+  ls mypy.ini pyrightconfig.json >/dev/null 2>&1 || grep -qs "tool.mypy\|tool.pyright" pyproject.toml \
+    || MISSING+=("python: strict type checking (mypy --strict or pyright strict)");;
+esac
+case ",${ECOSYSTEMS}," in *go*)
+  ls .golangci.y*ml >/dev/null 2>&1 || MISSING+=("go: golangci-lint with errcheck, depguard, forbidigo, noctx");;
+esac
+MISSING+=("for every rule of the standards, pick its gate for: ${ECOSYSTEMS} (${ENFORCEMENT}/GATES.md) and record it as an 'Enforced by:' line in AGENTS.md")
 
 if ! cmp -s "${ENFORCEMENT}/managed-settings.json" /etc/claude-code/managed-settings.json 2>/dev/null \
   || ! cmp -s "${ENFORCEMENT}/hooks/guard.py" /etc/claude-code/hooks/guard.py 2>/dev/null \
@@ -220,6 +285,7 @@ fi
 OWNER+=("Push yourself after reading the diff: ! git push")
 
 echo "Project setup report ($(pwd), mode: ${MODE})"
+echo "Detected: ${ECOSYSTEMS}; server parts: ${BACKEND_DIRS[*]:-none}; UI parts: ${FRONTEND_DIRS[*]:-none}"
 echo
 echo "Created (${#CREATED[@]}):"
 for item in "${CREATED[@]}"; do echo "  + ${item}"; done
