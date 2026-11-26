@@ -76,6 +76,8 @@ Single entry point for every agent and contributor. Read once per session, then 
 
 Live state is `TASK.md`; read it first in every session.
 
+Every agent (Claude Code, Codex, Cursor, Copilot, Gemini and others) follows `.skills/agentic-engineering-standard/HARD-RULES.md` and, before committing, reviews its diff against `.skills/agentic-engineering-standard/enforcement/REVIEW.md`.
+
 ## 2. Project commands
 - Format and lint: <fill in>
 - Typecheck: <fill in>
@@ -100,6 +102,25 @@ create CLAUDE.md <<'EOF' || true
 # Claude Code in this repository
 
 Rules: `AGENTS.md`, `SPEC.md` and the standards in `.skills/`. Enforcement layers: `.skills/agentic-engineering-standard/enforcement/README.md`.
+EOF
+
+POINTER="Read and follow AGENTS.md and .skills/agentic-engineering-standard/HARD-RULES.md before any change. Server code also follows .skills/backend-engineering-standard/SKILL.md, UI code .skills/frontend-engineering-standard/SKILL.md (read the matching sections before the first edit). Before committing, review the diff against .skills/agentic-engineering-standard/enforcement/REVIEW.md. Never push; the owner pushes."
+
+create GEMINI.md <<'EOF' || true
+@AGENTS.md
+@.skills/agentic-engineering-standard/HARD-RULES.md
+EOF
+
+create .github/copilot-instructions.md <<EOF || true
+${POINTER}
+EOF
+
+create .cursor/rules/standards.mdc <<EOF || true
+---
+description: Owner standards for every change
+alwaysApply: true
+---
+${POINTER}
 EOF
 
 create TASK.md <<EOF || true
@@ -185,6 +206,15 @@ create "docs/archive/COMPLETED_${MONTH}.md" <<EOF || true
 | :--- | :--- | :--- | :--- | :--- |
 EOF
 
+if [ ! -f scripts/checks/check-rules.py ]; then
+  if [ "$MODE" = "check" ]; then MISSING+=("scripts/checks/check-rules.py (language-independent rule check)"); else mkdir -p scripts/checks; cp "${SCRIPTS}/check-rules.py" scripts/checks/check-rules.py; chmod +x scripts/checks/check-rules.py; CREATED+=("scripts/checks/check-rules.py"); fi
+elif ! cmp -s "${SCRIPTS}/check-rules.py" scripts/checks/check-rules.py; then
+  MISSING+=("scripts/checks/check-rules.py is older than the skills copy: cp ${SCRIPTS}/check-rules.py scripts/checks/ (a gate file: the owner approves)")
+fi
+if [ -f AGENTS.md ] && ! grep -qs "HARD-RULES.md" AGENTS.md; then
+  MISSING+=("AGENTS.md does not point other agents to .skills/agentic-engineering-standard/HARD-RULES.md and enforcement/REVIEW.md")
+fi
+
 for dir in docs/designs docs/reports; do
   if [ ! -d "$dir" ]; then
     if [ "$MODE" = "check" ]; then MISSING+=("$dir/"); else mkdir -p "$dir"; touch "$dir/.gitkeep"; CREATED+=("$dir/"); fi
@@ -241,25 +271,25 @@ if [ ${#BACKEND_DIRS[@]} -eq 0 ] && [ ${#FRONTEND_DIRS[@]} -eq 0 ]; then
 fi
 
 if ls .github/workflows/*.y*ml .gitlab-ci.yml .gitlab-ci.yaml .circleci/config.yml Jenkinsfile azure-pipelines.yml bitbucket-pipelines.yml >/dev/null 2>&1; then :; else
-  MISSING+=("CI that runs the gates (start from ${ENFORCEMENT}/ci/verify.yml)")
+  MISSING+=("CI that runs the gates (templates in ${ENFORCEMENT}/ci: verify.yml for GitHub, gitlab-ci.yml, bitbucket-pipelines.yml, Jenkinsfile)")
 fi
-if grep -rqs "Replace this step with the setup actions" .github .gitlab-ci.yml 2>/dev/null; then
+if grep -rqs "REPLACE_WITH_TOOLCHAIN\|Replace this step with the setup actions" .github .gitlab-ci.yml bitbucket-pipelines.yml Jenkinsfile 2>/dev/null; then
   MISSING+=("CI still has the template Toolchain step: replace it with the project's language setup")
 fi
 if [ ! -x scripts/gates.sh ]; then
-  MISSING+=("scripts/gates.sh with 'staged' and 'ci' modes, called by both the pre-commit hook and CI (GATES.md)")
+  MISSING+=("scripts/gates.sh with 'staged' and 'ci' modes, called by both the pre-commit hook and CI (template: ${ENFORCEMENT}/templates/gates.sh)")
 fi
 if [ -f .husky/pre-commit ] || [ -f lefthook.yml ] || [ -f lefthook.yaml ] || [ -f .pre-commit-config.yaml ] || [ -x .git/hooks/pre-commit ]; then :; else
-  MISSING+=("pre-commit hook running the fast gates on staged files")
+  MISSING+=("pre-commit hook running ./scripts/gates.sh staged (template: ${ENFORCEMENT}/templates/pre-commit)")
 fi
 if [ -f .husky/commit-msg ] || grep -qs "commit-msg" lefthook.y*ml .pre-commit-config.yaml 2>/dev/null || [ -x .git/hooks/commit-msg ]; then :; else
-  MISSING+=("commit-msg hook (single-line Conventional Commit)")
+  MISSING+=("commit-msg hook, single-line Conventional Commit (template: ${ENFORCEMENT}/templates/commit-msg)")
 fi
 if ! grep -rqs "gitleaks\|trufflehog" .husky .pre-commit-config.yaml lefthook.y*ml .github .gitlab-ci.yml 2>/dev/null; then
   MISSING+=("secret scan (gitleaks) in the hook and CI")
 fi
 if ! ls cspell.json .cspell.json cspell.config.* >/dev/null 2>&1; then
-  MISSING+=("jargon check (cspell with flagWords)")
+  MISSING+=("jargon check: cspell with flagWords in the hook and CI (template: ${ENFORCEMENT}/templates/cspell.json; run with --report flagged)")
 fi
 case ",${ECOSYSTEMS}," in *typescript*)
   grep -rqs "no-floating-promises" --include='eslint.config.*' --include='.eslintrc*' --exclude-dir=node_modules --exclude-dir=.skills --exclude-dir=dist . 2>/dev/null \
@@ -276,8 +306,12 @@ MISSING+=("for every rule of the standards, pick its gate for: ${ECOSYSTEMS} (${
 
 if ! cmp -s "${ENFORCEMENT}/managed-settings.json" /etc/claude-code/managed-settings.json 2>/dev/null \
   || ! cmp -s "${ENFORCEMENT}/hooks/guard.py" /etc/claude-code/hooks/guard.py 2>/dev/null \
-  || ! cmp -s "${ENFORCEMENT}/hooks/session-check.py" /etc/claude-code/hooks/session-check.py 2>/dev/null; then
-  OWNER+=("Install or update the managed layer (machine-wide): sudo install -d -m 755 /etc/claude-code/hooks && sudo install -m 755 ${ENFORCEMENT}/hooks/guard.py ${ENFORCEMENT}/hooks/session-check.py /etc/claude-code/hooks/ && sudo install -m 644 ${ENFORCEMENT}/managed-settings.json /etc/claude-code/managed-settings.json")
+  || ! cmp -s "${ENFORCEMENT}/hooks/session-check.py" /etc/claude-code/hooks/session-check.py 2>/dev/null \
+  || ! cmp -s "${ENFORCEMENT}/hooks/inspection-log.py" /etc/claude-code/hooks/inspection-log.py 2>/dev/null; then
+  OWNER+=("Install or update the managed layer (machine-wide): sudo install -d -m 755 /etc/claude-code/hooks && sudo install -m 755 ${ENFORCEMENT}/hooks/guard.py ${ENFORCEMENT}/hooks/session-check.py ${ENFORCEMENT}/hooks/inspection-log.py /etc/claude-code/hooks/ && sudo install -m 644 ${ENFORCEMENT}/managed-settings.json /etc/claude-code/managed-settings.json")
+fi
+if [ ! -e "$HOME/.claude/agents/standards-reviewer.md" ]; then
+  OWNER+=("Link the reviewer agent: run ${SCRIPTS}/install-machine.sh")
 fi
 if git remote get-url origin >/dev/null 2>&1 || [ -n "$(git remote 2>/dev/null)" ]; then
   OWNER+=("On the remote: protect the default branch, require the CI check, require your review for .github/ changes")

@@ -8,7 +8,7 @@ Written rules alone are not enough: an agent can skip a rule it has not loaded, 
 | 2. Directory `CLAUDE.md` imports | Owner (protected by layer 1) | Backend or UI work without the matching standard in context |
 | 3. Project gates (lint, typecheck, custom checks, pre-commit hook) | Owner (protected by layer 1) | Every rule a machine can detect, before the commit exists |
 | 4. CI on the remote | Owner | Anything that slipped past the local hook, on a machine the agent never touches |
-| 5. Owner review of every diff before push | Owner | Judgement rules no check can detect (wrong pattern, needless reads, unclear names) |
+| 5. Review: the `standards-reviewer` agent before each commit, the owner before each push, both with `REVIEW.md` | Owner | Judgement rules no check can detect (wrong pattern, needless reads, unclear names) |
 
 ## Quick start
 
@@ -42,18 +42,20 @@ Run these yourself. The agent has no sudo, so it cannot change them afterwards.
 
 ```bash
 sudo install -d -m 755 /etc/claude-code/hooks
-sudo install -m 755 ~/coding/skills/agentic-engineering-standard/enforcement/hooks/guard.py ~/coding/skills/agentic-engineering-standard/enforcement/hooks/session-check.py /etc/claude-code/hooks/
+sudo install -m 755 ~/coding/skills/agentic-engineering-standard/enforcement/hooks/guard.py ~/coding/skills/agentic-engineering-standard/enforcement/hooks/session-check.py ~/coding/skills/agentic-engineering-standard/enforcement/hooks/inspection-log.py /etc/claude-code/hooks/
 sudo install -m 644 ~/coding/skills/agentic-engineering-standard/enforcement/managed-settings.json /etc/claude-code/managed-settings.json
 ```
 
-Start a new Claude Code session and check with `/permissions` and `/hooks` that the managed rules and both hooks are listed. When you change a file in this folder, run the same commands again: the copies in `/etc/claude-code` are what counts. `setup-project.sh` tells you when they are out of date. After any change to `guard.py`, run `hooks/guard_test.py`; every case must pass.
+Start a new Claude Code session and check with `/permissions` and `/hooks` that the managed rules and the three hooks are listed. When you change a file in this folder, run the same commands again: the copies in `/etc/claude-code` are what counts. `setup-project.sh` tells you when they are out of date. After any change to `guard.py`, run `hooks/guard_test.py`; every case must pass.
 
-The session-start check (`hooks/session-check.py`) runs in every repository: when `.skills`, `TASK.md`, `AGENTS.md` or `docs/AUDIT_BACKLOG.md` is missing, it tells the agent to say so and offer `/project-setup` before any other work.
+The session-start check (`hooks/session-check.py`) runs in every repository: when `.skills`, `TASK.md`, `AGENTS.md` or `docs/AUDIT_BACKLOG.md` is missing, it tells the agent to say so and offer `/project-setup` before any other work. It also reports drift: a managed layer older than this folder, unpushed skills commits, a project copy of `check-rules.py` older than the skills copy, and a `TASK.md` over 40 lines.
+
+The inspection-log check (`hooks/inspection-log.py`) runs before every file edit: the first edit of a code file in a session, and the first after each compaction, is refused once with the rule text unless the conversation already holds a Primary Source Inspection Log naming a file. The retry goes through, so it can never lock the agent out; it puts the rule in front of the agent at the moment it matters. Run `hooks/inspection_log_test.py` after changing it.
 
 What the guard does (`hooks/guard.py`, run before every shell command and file edit):
 
 - **Denies:** `git push`, `--no-verify`, `git commit -n`, `HUSKY=0`, `core.hooksPath`, history rewrites (`filter-branch`, `filter-repo`), `drizzle-kit migrate` or `push`, bypass mode.
-- **Asks you:** any write to a gate, hook, lint, CI or permission file (by file edit or by shell), `git reset --hard`, `rebase`, `clean -f`, discarding changes, deleting branches, recursive `rm`, `psql`.
+- **Asks you:** any write to a gate, hook, lint, CI or permission file or to an agent instruction file (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/`), by file edit or by shell, `git reset --hard`, `rebase`, `clean -f`, discarding changes, deleting branches, recursive `rm`, `psql`.
 
 You push yourself after reading the diff: type `! git push` in the session, or push from your own terminal.
 
@@ -87,14 +89,16 @@ Allowlists and gate configuration are gate files: the guard asks you before the 
 
 ## 4. CI
 
-Copy `ci/verify.yml` to `.github/workflows/verify.yml` (or the same three steps for GitLab, Bitbucket or Jenkins), replace the `Toolchain` step with the project's languages, and keep the single `./scripts/gates.sh ci` step (`GATES.md`). Protect the default branch so the check must pass, and require your review for changes under `.github/`.
+Copy `ci/verify.yml` to `.github/workflows/verify.yml` (or `ci/gitlab-ci.yml`, `ci/bitbucket-pipelines.yml`, `ci/Jenkinsfile`), replace the `Toolchain` step with the project's languages, and keep the single `./scripts/gates.sh ci` step (`GATES.md`). Protect the default branch so the check must pass, and require your review for changes under `.github/`.
 
 ## 5. Owner review
 
-Before every push, read `git diff origin/main..HEAD` (or the pull request). Ask: did it follow the existing pattern, does it read anything twice, does any side effect skip the job queue, does any name need history to understand? Every problem found twice becomes a check in layer 3.
+Before each commit of server or UI code the agent runs the `standards-reviewer` agent (linked into `~/.claude/agents` by `install-machine.sh`) on the staged diff and fixes its blockers. Before every push, read `git diff origin/main..HEAD` (or the pull request) against the same `REVIEW.md`. Every problem found twice becomes a check in layer 3.
 
 ## Limits
 
 - The guard matches command text. A determined command can hide a write (a script file it writes and runs later); layer 3 and layer 4 still run on whatever gets committed, and layer 5 reads it.
-- Managed settings bind Claude Code only. Other agents are held by layers 3 to 5.
+- Managed settings and the hooks bind Claude Code only. Other agents read `AGENTS.md` and their pointer files (`GEMINI.md`, `.github/copilot-instructions.md`, `.cursor/rules/standards.mdc`) and are held by layers 3 to 5.
+- The inspection-log check reads the session transcript, which does not always keep the text written just before a tool call; that is why it reminds once instead of blocking every edit. It proves the reminder was shown, not that the log is good: review checks that.
+- In auto mode, an "ask" from the guard may be approved by the mode's classifier instead of by you; use the default mode when gate files are being changed.
 - No layer judges design. Review stays the owner's job.

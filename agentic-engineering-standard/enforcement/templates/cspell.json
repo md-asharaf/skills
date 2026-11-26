@@ -1,0 +1,6 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "flagWords": ["telemetry", "tenant", "tenants", "tenancy", "holistic", "enterprise", "legacy", "epoch", "epochs", "multitenant", "multitenancy"],
+  "ignorePaths": ["**/node_modules/**", "**/dist/**", "**/build/**", "**/vendor/**", "**/.venv/**", "**/target/**", "**/coverage/**"]
+}

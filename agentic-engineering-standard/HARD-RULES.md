@@ -32,16 +32,17 @@ The full standard is `~/coding/skills/agentic-engineering-standard/SKILL.md`; se
 17. Never edit, weaken or bypass gates, hooks, lint rules, CI workflows, allowlists or permission settings unless the user asked for that exact change; show the diff first.
 18. Never push and never apply migrations: the user pushes after reviewing the diff.
 19. When you miss a rule, say so plainly and propose the lint rule, check or test that would have caught it, in the same report.
+20. Before each commit of server or UI code, run the `standards-reviewer` agent on the staged diff (or review it against `enforcement/REVIEW.md`) and fix every blocker first.
 
 ## Git
-20. Single-line Conventional Commit messages: no body, no trailers, no AI attribution. Commit with explicit paths after checking `git diff --stat` (§6).
-21. Never bypass hooks (`--no-verify`). Never force-push, delete branches, push to `main` where branches are used, or run migrations or SQL against any real database without explicit instruction (§4.3, §5.3).
-22. Remove every temporary resource you created (containers, worktrees, scratch files) before finishing (§5.5).
+21. Single-line Conventional Commit messages: no body, no trailers, no AI attribution. Commit with explicit paths after checking `git diff --stat` (§6).
+22. Never bypass hooks (`--no-verify`). Never force-push, delete branches, push to `main` where branches are used, or run migrations or SQL against any real database without explicit instruction (§4.3, §5.3).
+23. Remove every temporary resource you created (containers, worktrees, scratch files) before finishing (§5.5).
 
 ## Tokens
-23. Locate with grep, then read 50–150 line slices. Pipe long command output. Never paste files back into chat (§1).
-24. Use subagents only for large jobs, and brief them with these rules (§1.5).
+24. Locate with grep, then read 50–150 line slices. Pipe long command output. Never paste files back into chat (§1).
+25. Use subagents only for large jobs, and brief them with these rules (§1.5).
 
 ## Reporting and decisions
-25. Argue before agreeing: say what is right, what is costly, and recommend one option (§12).
-26. End finished work with what changed, a gate table (PASSED, FAILED, or NOT RUN with the reason), the runtime check and open risks. Open items follow the Universal Memory Architecture (§9): technical debt and code smells go into `docs/AUDIT_BACKLOG.md`, feature ideas into `docs/BACKLOG.md`, decisions into `docs/DECISIONS.md`, and completed tasks into `docs/archive/COMPLETED_YYYY_MM.md`. `TASK.md` remains strictly <= 30 lines (Goal, Active Task, Queued, Blockers). After a milestone commit, end with exactly one line: "Run `/clear` now", "Run `/compact` now" or "No clear yet: <reason>" (§3.2, §9.3).
+26. Argue before agreeing: say what is right, what is costly, and recommend one option (§12).
+27. End finished work with what changed, a gate table (PASSED, FAILED, or NOT RUN with the reason), the runtime check and open risks. Open items follow the Universal Memory Architecture (§9): technical debt and code smells go into `docs/AUDIT_BACKLOG.md`, feature ideas into `docs/BACKLOG.md`, decisions into `docs/DECISIONS.md`, and completed tasks into `docs/archive/COMPLETED_YYYY_MM.md`. `TASK.md` remains strictly <= 30 lines (Goal, Active Task, Queued, Blockers). After a milestone commit, end with exactly one line: "Run `/clear` now", "Run `/compact` now" or "No clear yet: <reason>" (§3.2, §9.3).

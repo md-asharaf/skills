@@ -22,6 +22,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Toolchain
-        run: echo "Replace this step with the setup actions of the project's languages (see GATES.md, CI toolchains)."
+        run: echo "REPLACE_WITH_TOOLCHAIN: use the setup actions of the project's languages (GATES.md, CI toolchains)" && exit 1
       - name: Gates
         run: ./scripts/gates.sh ci

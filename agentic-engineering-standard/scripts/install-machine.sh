@@ -27,6 +27,16 @@ for target in "$HOME/.claude/skills" "$HOME/.agents/skills"; do
   done
 done
 
+mkdir -p "$HOME/.claude/agents"
+for agent in "$SKILLS_SOURCE"/agentic-engineering-standard/agents/*.md; do
+  [ -f "$agent" ] || continue
+  link="$HOME/.claude/agents/$(basename "$agent")"
+  if [ "$(readlink -f "$link" 2>/dev/null)" != "$(readlink -f "$agent")" ]; then
+    ln -sfn "$agent" "$link"
+    DONE+=("linked the $(basename "$agent" .md) agent into ~/.claude/agents")
+  fi
+done
+
 SKILLS_HOOK="$SKILLS_SOURCE/.git/hooks/pre-commit"
 if ! grep -qs "check-skills.sh" "$SKILLS_HOOK"; then
   printf '#!/usr/bin/env bash\nexec "%s/agentic-engineering-standard/scripts/check-skills.sh"\n' "$SKILLS_SOURCE" > "$SKILLS_HOOK"
@@ -59,6 +69,7 @@ def ensure(event, entry):
     if entry["hooks"][0]["command"] not in commands:
         present.append(entry)
 ensure("PreToolUse", {"matcher": "Bash|Edit|Write|NotebookEdit", "hooks": [{"type": "command", "command": str(enforcement / "hooks/guard.py"), "timeout": 10}]})
+ensure("PreToolUse", {"matcher": "Edit|Write|NotebookEdit", "hooks": [{"type": "command", "command": str(enforcement / "hooks/inspection-log.py"), "timeout": 10}]})
 ensure("SessionStart", {"hooks": [{"type": "command", "command": str(enforcement / "hooks/session-check.py"), "timeout": 10}]})
 risky = re.compile(r"\bpush\b|filter-branch|filter-repo|git rebase|git reset|--no-verify|(npm|pnpm|yarn) (install|add) \*")
 flagged = [rule for rule in perms.get("allow", []) if risky.search(rule)]
@@ -70,7 +81,7 @@ for rule in flagged:
     print(f"REVIEW allow rule that weakens the guard: {rule}")
 PY
 )
-if grep -q "^CHANGED$" <<<"$SETTINGS_OUTPUT"; then DONE+=("merged deny and ask rules and the two hooks into ~/.claude/settings.json"); fi
+if grep -q "^CHANGED$" <<<"$SETTINGS_OUTPUT"; then DONE+=("merged deny and ask rules and the three hooks into ~/.claude/settings.json"); fi
 while IFS= read -r line; do
   [[ "$line" == REVIEW* ]] && TODO+=("$line")
 done <<<"$SETTINGS_OUTPUT"
@@ -81,10 +92,11 @@ case "$(uname -s)" in
 esac
 if ! sed "s#/etc/claude-code#$MANAGED_DIR#g" "$ENFORCEMENT/managed-settings.json" | cmp -s - "$MANAGED_DIR/managed-settings.json" 2>/dev/null \
   || ! cmp -s "$ENFORCEMENT/hooks/guard.py" "$MANAGED_DIR/hooks/guard.py" 2>/dev/null \
-  || ! cmp -s "$ENFORCEMENT/hooks/session-check.py" "$MANAGED_DIR/hooks/session-check.py" 2>/dev/null; then
+  || ! cmp -s "$ENFORCEMENT/hooks/session-check.py" "$MANAGED_DIR/hooks/session-check.py" 2>/dev/null \
+  || ! cmp -s "$ENFORCEMENT/hooks/inspection-log.py" "$MANAGED_DIR/hooks/inspection-log.py" 2>/dev/null; then
   TODO+=("Install the root-owned managed layer (the agent cannot change it):")
   TODO+=("  sudo install -d -m 755 \"$MANAGED_DIR/hooks\"")
-  TODO+=("  sudo install -m 755 \"$ENFORCEMENT/hooks/guard.py\" \"$ENFORCEMENT/hooks/session-check.py\" \"$MANAGED_DIR/hooks/\"")
+  TODO+=("  sudo install -m 755 \"$ENFORCEMENT/hooks/guard.py\" \"$ENFORCEMENT/hooks/session-check.py\" \"$ENFORCEMENT/hooks/inspection-log.py\" \"$MANAGED_DIR/hooks/\"")
   TODO+=("  sed \"s#/etc/claude-code#$MANAGED_DIR#g\" \"$ENFORCEMENT/managed-settings.json\" | sudo tee \"$MANAGED_DIR/managed-settings.json\" >/dev/null")
 fi
 

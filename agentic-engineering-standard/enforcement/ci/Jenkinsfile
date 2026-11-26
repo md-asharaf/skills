@@ -1,0 +1,9 @@
+pipeline {
+  agent any
+  options { timeout(time: 45, unit: 'MINUTES') }
+  stages {
+    stage('Secret scan') { steps { sh 'gitleaks git --redact --no-banner .' } }
+    stage('Toolchain') { steps { sh 'echo REPLACE_WITH_TOOLCHAIN; exit 1' } }
+    stage('Gates') { steps { sh './scripts/gates.sh ci' } }
+  }
+}

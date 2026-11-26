@@ -28,6 +28,11 @@ CASES = [
     ("git reset --soft HEAD~1", "allow"),
     ("git rebase main", "ask"),
     ("git log --oneline -3 2>/dev/null", "allow"),
+    ("echo x >> AGENTS.md", "ask"),
+    ("cat AGENTS.md | head", "allow"),
+    ("sed -i s/a/b/ apps/api/CLAUDE.md", "ask"),
+    ("echo x > .cursor/rules/standards.mdc", "ask"),
+    ("echo x > docs/AGENTS-notes.md", "allow"),
     ("git diff --stat; git status -s", "allow"),
     ("rm -rf node_modules", "ask"),
     ("grep -n psql docs/notes.md", "allow"),
@@ -70,6 +75,12 @@ FILE_CASES = [
     ("/x/analysis_options.yaml", "ask"),
     ("/x/scripts/checks/side-effects.mjs", "ask"),
     ("/x/src/services/checkout.service.ts", "allow"),
+    ("/x/AGENTS.md", "ask"),
+    ("/x/apps/web/CLAUDE.md", "ask"),
+    ("/x/GEMINI.md", "ask"),
+    ("/x/.cursor/rules/standards.mdc", "ask"),
+    ("/x/docs/DECISIONS.md", "allow"),
+    ("/x/TASK.md", "allow"),
 ]
 
 

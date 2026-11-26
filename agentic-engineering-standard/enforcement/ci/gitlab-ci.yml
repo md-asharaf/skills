@@ -1,0 +1,18 @@
+stages: [verify]
+
+secret-scan:
+  stage: verify
+  image:
+    name: ghcr.io/gitleaks/gitleaks:latest
+    entrypoint: [""]
+  variables:
+    GIT_DEPTH: 0
+  script:
+    - gitleaks git --redact --no-banner .
+
+gates:
+  stage: verify
+  image: REPLACE_WITH_TOOLCHAIN_IMAGE
+  timeout: 45m
+  script:
+    - ./scripts/gates.sh ci
