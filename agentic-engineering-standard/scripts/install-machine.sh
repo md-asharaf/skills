@@ -27,6 +27,13 @@ for target in "$HOME/.claude/skills" "$HOME/.agents/skills"; do
   done
 done
 
+SKILLS_HOOK="$SKILLS_SOURCE/.git/hooks/pre-commit"
+if ! grep -qs "check-skills.sh" "$SKILLS_HOOK"; then
+  printf '#!/usr/bin/env bash\nexec "%s/agentic-engineering-standard/scripts/check-skills.sh"\n' "$SKILLS_SOURCE" > "$SKILLS_HOOK"
+  chmod +x "$SKILLS_HOOK"
+  DONE+=("installed the skills repository pre-commit check")
+fi
+
 GLOBAL="$HOME/.claude/CLAUDE.md"
 IMPORT="@~/coding/skills/agentic-engineering-standard/HARD-RULES.md"
 if ! grep -qF "$IMPORT" "$GLOBAL" 2>/dev/null; then
