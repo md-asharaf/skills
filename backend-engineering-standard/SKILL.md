@@ -542,7 +542,7 @@ To support zero-downtime rolling deployments, processes MUST handle termination 
 
 ### 8.1 Read-Through Caching with Deterministic Cache Keys
 * Cache query responses using deterministic keys incorporating tenant, version, and query hashes:
-  `cache:v1:<tenantId>:<dataVersion>:<querySha256>`
+  `cache:v1:<workspaceId>:<dataVersion>:<querySha256>`
 * Set explicit TTLs (e.g. 600s) and maximum cached object size limits (e.g. 512 KB).
 
 ### 8.2 Event-Driven Cache Invalidation via Outbox & Version Bumping
@@ -565,9 +565,9 @@ To support zero-downtime rolling deployments, processes MUST handle termination 
 ## 9. Security & Multi-Tenant Egress Isolation
 
 ### 9.1 Multi-Tenant Isolation at the Repository Boundary
-* Every database query that accesses tenant data MUST be filtered by the tenant identifier (`tenant_id` / `project_id`) at the repository boundary:
+* Every database query that accesses tenant data MUST be filtered by the boundary identifier at the repository boundary. Name the column after the domain (`project_id`, `workspace_id`, `organisation_id`), never `tenant_id` (agentic standard §13.4):
   ```sql
-  SELECT * FROM documents WHERE tenant_id = $1 AND id = $2;
+  SELECT * FROM documents WHERE workspace_id = $1 AND id = $2;
   ```
 * Tenant context is extracted from authenticated session tokens by middleware and passed through request contexts. It must never be accepted from unverified request body parameters.
 
@@ -581,7 +581,7 @@ To support zero-downtime rolling deployments, processes MUST handle termination 
 ### 9.3 Defense in Depth & Mass-Assignment Protection
 * Controllers strictly map validated DTO fields to domain objects.
 * Never pass raw unvalidated request bodies directly to database insert or update queries.
-* Sensitive internal fields (`id`, `createdAt`, `tenantId`, `role`, `version`) are never updatable via generic update payloads.
+* Sensitive internal fields (`id`, `createdAt`, `workspaceId`, `role`, `version`) are never updatable via generic update payloads.
 
 ---
 

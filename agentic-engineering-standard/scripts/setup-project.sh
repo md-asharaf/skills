@@ -302,6 +302,34 @@ esac
 case ",${ECOSYSTEMS}," in *go*)
   ls .golangci.y*ml >/dev/null 2>&1 || MISSING+=("go: golangci-lint with errcheck, depguard, forbidigo, noctx");;
 esac
+case ",${ECOSYSTEMS}," in *javascript*)
+  grep -rqs "catch-or-return\|no-floating-promises" --include='eslint.config.*' --include='.eslintrc*' --exclude-dir=node_modules --exclude-dir=.skills . 2>/dev/null \
+    || MISSING+=("javascript: eslint-plugin-promise catch-or-return and no-console (or move to TypeScript for no-floating-promises)");;
+esac
+case ",${ECOSYSTEMS}," in *rust*)
+  grep -rqs "unused_must_use\|clippy" Cargo.toml clippy.toml .cargo/config.toml src/lib.rs src/main.rs 2>/dev/null \
+    || MISSING+=("rust: clippy with -D warnings, #![deny(unused_must_use)], #![forbid(unsafe_code)]");;
+esac
+case ",${ECOSYSTEMS}," in *jvm*)
+  grep -rqs "errorprone\|detekt\|archunit" --include='*.gradle*' --include='pom.xml' . 2>/dev/null \
+    || MISSING+=("jvm: Error Prone or detekt with warnings as errors, ArchUnit for layers");;
+esac
+case ",${ECOSYSTEMS}," in *dotnet*)
+  grep -rqs "TreatWarningsAsErrors" --include='*.csproj' --include='Directory.Build.props' . 2>/dev/null \
+    || MISSING+=("dotnet: <TreatWarningsAsErrors>, <Nullable>enable</Nullable>, CS4014 as error, NetArchTest");;
+esac
+case ",${ECOSYSTEMS}," in *php*)
+  ls phpstan.neon* psalm.xml >/dev/null 2>&1 || MISSING+=("php: PHPStan or Psalm at max level, deptrac for layers");;
+esac
+case ",${ECOSYSTEMS}," in *ruby*)
+  ls .rubocop.yml >/dev/null 2>&1 || MISSING+=("ruby: rubocop with no disabled cops, strong_migrations, bullet for N+1");;
+esac
+case ",${ECOSYSTEMS}," in *dart*)
+  grep -qs "strict-casts" analysis_options.yaml || MISSING+=("dart: analysis_options.yaml with strict-casts, strict-inference, unawaited_futures, avoid_print");;
+esac
+case ",${ECOSYSTEMS}," in *swift*)
+  ls .swiftlint.yml >/dev/null 2>&1 || MISSING+=("swift: SwiftLint with warnings as errors");;
+esac
 MISSING+=("for every rule of the standards, pick its gate for: ${ECOSYSTEMS} (${ENFORCEMENT}/GATES.md) and record it as an 'Enforced by:' line in AGENTS.md")
 
 if ! cmp -s "${ENFORCEMENT}/managed-settings.json" /etc/claude-code/managed-settings.json 2>/dev/null \

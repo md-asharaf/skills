@@ -30,7 +30,7 @@ Enterprise monorepos are strictly partitioned into deployable applications (`app
 .github/
   workflows/ci.yml          # Automated monorepo CI pipeline
 .husky/
-  pre-commit                # Root git hook executing verification gates
+  pre-commit                # Root git hook running ./scripts/gates.sh staged
 apps/
   api/                      # Backend Service (Node.js, Go, Python, Rust)
     src/
@@ -54,7 +54,8 @@ packages/
   config-tailwind/          # Shared design tokens, theme configurations, CSS presets
   shared-utils/             # Pure deterministic utilities (formatting, math, validators)
 scripts/
-  verify-all.mjs            # Monorepo-wide programmatic quality gate runner
+  gates.sh                  # The one gate entry point: 'staged' for the hook, 'ci' for CI
+  checks/                   # Custom checks gates.sh runs (check-rules.py, architecture checks)
 .npmrc                      # Package manager hoisting & peer dependency settings
 docker-compose.yml          # Local infrastructure services (Postgres, Redis, MinIO)
 package.json                # Monorepo root manifest
@@ -261,12 +262,12 @@ Monorepo CI pipelines must execute only affected workspaces and optimize contain
 Before merging code or deploying, the root monorepo quality gate must programmatically verify workspace integrity.
 
 ### 7.1 Monorepo Orchestration Commands
-Root `package.json` scripts orchestrate the entire workspace:
+Root scripts orchestrate the entire workspace (shown for pnpm with Turborepo; use the equivalent Nx, Bun, Yarn, Cargo or Go workspace commands):
 * `pnpm build`: Runs `turbo run build` across all workspaces.
 * `pnpm typecheck`: Runs `turbo run typecheck` across all workspaces (0 compiler errors).
 * `pnpm lint`: Runs `turbo run lint` across all workspaces (0 linter warnings or errors).
 * `pnpm test`: Runs `turbo run test` across all workspaces (100% test pass rate).
-* `pnpm verify`: Executes the programmatic audit script (`node scripts/verify-all.mjs`).
+* `pnpm verify`: Runs `./scripts/gates.sh ci`, the same entry point CI calls (agentic standard `enforcement/GATES.md`).
 
 ### 7.2 Programmatic Monorepo Audit Checklist
 The automated monorepo audit script MUST verify:
@@ -274,4 +275,4 @@ The automated monorepo audit script MUST verify:
 2. **DAG Validation:** No circular references exist between internal packages (`dpdm` cycle count = 0).
 3. **No Cross-Layer Imports:** No internal package in `packages/*` imports from `apps/*`.
 4. **Test Isolation:** Enforces `agentic-engineering-standard` §10.4 (zero test files inside any workspace's `src/`).
-5. **Lockfile Sync:** The root lockfile is strictly in sync with all workspace `package.json` manifests (`pnpm install --frozen-lockfile` exits 0).
+5. **Lockfile Sync:** The root lockfile is strictly in sync with all workspace manifests (`pnpm install --frozen-lockfile`, `yarn install --immutable`, `bun install --frozen-lockfile`, `cargo metadata --locked` or `go mod verify` exits 0).

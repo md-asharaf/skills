@@ -1,6 +1,6 @@
 # Review checklist: the rules no machine checks yet
 
-Used by the `standards-reviewer` agent before every commit, by any other agent asked to review, and by the owner before every push. Gates (lint, typecheck, custom checks, tests) already hold the mechanical rules; a review never repeats them, it reads the diff for these. Every finding names `file:line`, the rule, and the gate that would catch it next time (`GATES.md`). A rule found broken twice moves from this list to a gate.
+Used by the reviewer agent (a project's own, which only adds project rules, or `standards-reviewer`) before every commit, by any other agent asked to review, and by the owner before every push. Gates (lint, typecheck, custom checks, tests) already hold the mechanical rules; a review never repeats them, it reads the diff for these. Every finding names `file:line`, the rule, and the gate that would catch it next time (`GATES.md`). A rule found broken twice moves from this list to a gate.
 
 ## How to review
 
@@ -27,7 +27,7 @@ Used by the `standards-reviewer` agent before every commit, by any other agent a
 - [ ] **Transactions:** opened through the repository unit of work; no network call inside (§6.3).
 - [ ] **Outbound calls:** timeouts, retries only when idempotent, errors mapped to typed errors (§5.8).
 - [ ] **Error contract:** typed errors with catalogue codes; one code, one status; no internal message reaches the client (§4).
-- [ ] **Tenant isolation:** every new tenant query path has a test proving another tenant can neither read nor change it (§9.1).
+- [ ] **Customer data isolation:** every new query path over customer-owned data has a test proving another customer (project, workspace, organisation) can neither read nor change it (§9.1).
 - [ ] **Migrations:** journaled, forward-only, no silent data loss, destructive steps approved and planned (§6.1, §6.10).
 - [ ] **Logs:** no tokens, passwords, session ids or personal data (§1.1).
 
@@ -35,7 +35,7 @@ Used by the `standards-reviewer` agent before every commit, by any other agent a
 
 - [ ] **Shared components and tokens:** no hand-rolled table, alert, dialog, button or card that the project already has; no literal colours or sizes (§1–2, §4).
 - [ ] **Five view states:** loading, empty, error, pending and success are each handled and visible (§3).
-- [ ] **Prop contracts:** icons through `icon`, loading through `isLoading`, labels on icon-only actions, link primitives for navigation.
+- [ ] **Prop contracts:** shared primitives are used through their own props (icon, loading and variant props, not hand-built children), icon-only actions have labels, navigation uses the link primitive.
 - [ ] **UX golden rules:** settings live with their item, one primary action, errors say what to do next, no internal names in text people read (§5, §6).
 - [ ] **Screens checked:** screenshots at phone and desktop width, light and dark, for each changed screen (§8).
 

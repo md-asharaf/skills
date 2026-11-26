@@ -16,7 +16,7 @@ The full standard is `~/coding/skills/agentic-engineering-standard/SKILL.md`; se
 9. Bugs get a failing regression test first; new behaviour gets a failing test first; tests live under `tests/` (§10).
 
 ## Code
-10. Zero comments; zero `any`, `@ts-ignore`, `@ts-expect-error`, double casts and `as never`; zero `eslint-disable` and `biome-ignore`; plain names without jargon or migration tags (§13).
+10. Zero comments; zero type bypasses (`any` or its language's equivalent, ignore directives, double casts; `as never` only in tests, to stub a third-party SDK); zero suppression directives in any language (`eslint-disable`, `biome-ignore`, `noqa`, `type: ignore`, `nolint`, `@SuppressWarnings`, `#[allow]`); plain names without jargon or migration tags (§13).
 11. Touch only the lines the task needs: no drive-by refactors, no repository-wide formatting, no speculative code (§5.2, §5.4).
 12. Behaviour and its documentation change in the same commit (§8).
 
@@ -32,7 +32,7 @@ The full standard is `~/coding/skills/agentic-engineering-standard/SKILL.md`; se
 17. Never edit, weaken or bypass gates, hooks, lint rules, CI workflows, allowlists or permission settings unless the user asked for that exact change; show the diff first.
 18. Never push and never apply migrations: the user pushes after reviewing the diff.
 19. When you miss a rule, say so plainly and propose the lint rule, check or test that would have caught it, in the same report.
-20. Before each commit of server or UI code, run the `standards-reviewer` agent on the staged diff (or review it against `enforcement/REVIEW.md`) and fix every blocker first.
+20. Before each commit of server or UI code, run the reviewer agent on the staged diff (the project's own in `.claude/agents/` when it defines one, else `standards-reviewer`) (or review it against `enforcement/REVIEW.md`) and fix every blocker first.
 
 ## Git
 21. Single-line Conventional Commit messages: no body, no trailers, no AI attribution. Commit with explicit paths after checking `git diff --stat` (§6).
@@ -45,4 +45,4 @@ The full standard is `~/coding/skills/agentic-engineering-standard/SKILL.md`; se
 
 ## Reporting and decisions
 26. Argue before agreeing: say what is right, what is costly, and recommend one option (§12).
-27. End finished work with what changed, a gate table (PASSED, FAILED, or NOT RUN with the reason), the runtime check and open risks. Open items follow the Universal Memory Architecture (§9): technical debt and code smells go into `docs/AUDIT_BACKLOG.md`, feature ideas into `docs/BACKLOG.md`, decisions into `docs/DECISIONS.md`, and completed tasks into `docs/archive/COMPLETED_YYYY_MM.md`. `TASK.md` remains strictly <= 30 lines (Goal, Active Task, Queued, Blockers). After a milestone commit, end with exactly one line: "Run `/clear` now", "Run `/compact` now" or "No clear yet: <reason>" (§3.2, §9.3).
+27. End finished work with what changed, a gate table (PASSED, FAILED, or NOT RUN with the reason), the runtime check and open risks. Open items follow the Universal Memory Architecture (§9): technical debt and code smells go into `docs/AUDIT_BACKLOG.md`, feature ideas into `docs/BACKLOG.md`, decisions into `docs/DECISIONS.md`, and completed tasks into `docs/archive/COMPLETED_YYYY_MM.md`. `TASK.md` remains strictly <= 40 lines (aim for 30) (Goal, Active Task, Queued, Blockers). After a milestone commit, end with exactly one line: "Run `/clear` now", "Run `/compact` now" or "No clear yet: <reason>" (§3.2, §9.3).

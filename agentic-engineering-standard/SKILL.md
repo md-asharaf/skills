@@ -119,9 +119,9 @@ Autonomous agents often get stuck in expensive verification loops, re-running 3,
 ### 4.1 The Targeted Iteration Loop
 * During active development and debugging:
   - Run ONLY the single test spec covering the modified file:
-    `pnpm test tests/unit/orders.service.spec.ts`
-  - Run typecheck for ONLY the affected package:
-    `pnpm --filter @ws/api exec tsc --noEmit`
+    `pnpm test tests/unit/orders.service.spec.ts`, `pytest tests/unit/test_orders.py`, `go test ./orders/...`
+  - Run typecheck for ONLY the affected package, using the command the project's `AGENTS.md` lists:
+    `pnpm --filter <package> exec tsc --noEmit`, `mypy src/orders`, `cargo check -p orders`
 * Do NOT run full monorepo builds and test suites on every incremental edit.
 
 ### 4.2 Efficient Gate Resumption
@@ -220,8 +220,8 @@ Autonomous agents often spin up secondary processes, temporary git worktrees, or
 
 ### 6.2 Strict Single-Line Commit Messages
 * **The Rule:** Commit messages MUST be a strictly single line following Conventional Commits:
-  `<type>: <short description>`
-* **Types:** `feat`, `fix`, `refactor`, `style`, `chore`, `test`, `docs`.
+  `<type>: <short description>` or `<type>(<scope>): <short description>`, as the project's `AGENTS.md` chooses
+* **Types:** `feat`, `fix`, `refactor`, `perf`, `style`, `chore`, `test`, `docs`, `build`, `ci`, `revert`.
 * **Strict Invariants:**
   - **Zero Commit Body:** Never include a multi-line commit body or bullet points.
   - **Zero Git Trailers:** No `Signed-off-by:` or issue tracking footers.
@@ -282,7 +282,7 @@ project-root/
 ├── AGENTS.md                  <-- AI Rules, Constraints & Quality Gates
 ├── SPEC.md (or SPECS.md)      <-- Single Source of Truth: Product & Architecture Contract
 │
-├── TASK.md                    <-- [HOT] Live State Machine (Strictly <= 30-40 lines)
+├── TASK.md                    <-- [HOT] Live State Machine (Strictly <= 40 lines, aim for 30)
 │
 └── docs/                      <-- [COLD] Permanent Knowledge Base
     ├── BACKLOG.md             <-- Future Features, Unscheduled Ideas & Product Roadmap
@@ -297,7 +297,7 @@ project-root/
 ### 9.1 The Live Task State Machine (`TASK.md`) — Hot State
 The single source of truth for active project memory is a dedicated file at the repository root: `TASK.md`. It tracks in-flight intent, immediate queued requests, and pending blockers across all sessions and devices.
 
-* **Hard Invariant:** `TASK.md` MUST NEVER exceed 30–40 lines (< 2 KB). Completed tasks, historical tables, closed items, and lengthy backlogs must NEVER accumulate in `TASK.md`.
+* **Hard Invariant:** `TASK.md` MUST NEVER exceed 40 lines (aim for 30, < 2 KB). Completed tasks, historical tables, closed items, and lengthy backlogs must NEVER accumulate in `TASK.md`.
 
 ```markdown
 # Active Task State
@@ -395,7 +395,7 @@ Long-term plans, audits, architecture designs, and historical decisions belong i
    - Append a 1-line summary with commit hash to `docs/archive/COMPLETED_YYYY_MM.md`.
    - Remove the completed task from `TASK.md`.
    - Promote the next queued task to Active with atomic sub-steps and update the Goal.
-   - Immediately prune `TASK.md` to remain `<= 30–40 lines`.
+   - Immediately prune `TASK.md` to remain `<= 40 lines`.
 6. **Session Orientation on Boot (< 500 Tokens):** Upon starting ANY session or resuming on a new device, the agent's very first action is reading `TASK.md`. The agent restores complete situational awareness in < 500 tokens without scanning the git log, reading directory trees, or grepping files.
 
 ### 9.4 Single-Prompt Repository Bootstrap Protocol (Day-0 Setup)
@@ -415,7 +415,7 @@ The agent MUST scaffold or reorganize the complete structure in **a single paral
 2. **Root Files:**
    - `AGENTS.md`: Agent constitution, code style invariants, Stop-and-Ask triggers, and Universal Memory operating system.
    - `CLAUDE.md`: Claude Code entrypoint importing `@AGENTS.md` with master sources of truth and quality gates.
-   - `TASK.md`: Live state machine (strictly `<= 30 lines`) with Goal, Active Task, Queued Tasks, Blockers.
+   - `TASK.md`: Live state machine (strictly `<= 40 lines`, aim for 30) with Goal, Active Task, Queued Tasks, Blockers.
    - `SPEC.md`: Preserved if present; seeded if absent.
 3. **Cold Knowledge Base (`docs/`):**
    - `docs/BACKLOG.md`: Product roadmap and unscheduled feature backlog.
@@ -455,8 +455,7 @@ Code without automated tests is unverified hypothesis. Autonomous agents MUST fo
 * This guarantees that every bug resolved has an automated regression test preventing it from ever recurring.
 
 ### 10.3 Fail Early on File Edits
-* Immediately run single-file typecheck or targeted unit test on a modified file before proceeding to edit subsequent files:
-  `pnpm test tests/unit/orders.service.spec.ts`
+* Immediately run single-file typecheck or targeted unit test on a modified file before proceeding to edit subsequent files (the project's targeted test command, for example `pnpm test tests/unit/orders.service.spec.ts` or `pytest tests/unit/test_orders.py`)
 * Catching a syntax or contract error on 1 file consumes 100 tokens; discovering it after modifying 10 files consumes thousands of debugging tokens.
 
 ### 10.4 Test Isolation & Structure Standards
@@ -510,18 +509,18 @@ These laws apply to every line of source code, test files, and utility scripts, 
 * **Enforcement:** Code MUST be self-documenting through intention-revealing function names, explicit variable names, descriptive domain types, and pure modularization. If a piece of logic requires explanation, refactor it into well-named helper functions or domain types.
 
 ### 13.2 Absolute Type Safety (Zero `any` & Zero Type Bypasses)
-* **The Rule:** Zero `any`, zero `@ts-ignore`, zero `@ts-expect-error`, zero double-casting (`as unknown as T`), and zero `as never` in application source code.
+* **The Rule:** Zero `any`, zero `@ts-ignore`, zero `@ts-expect-error`, zero double-casting (`as unknown as T`), and zero `as never` in application source code. Other languages hold the same line with their equivalents: Python `Any` and `cast` chains under `mypy --strict`, Go `interface{}`/`any` in domain code, Rust `unsafe` and `transmute`, Kotlin `!!` and unchecked casts, C# `dynamic`, Dart `dynamic` (see `enforcement/GATES.md`).
 * **Narrowing Unknown Values:** Always use runtime type guards (e.g. Zod, Valibot, or custom `isRecord(val): val is Record<string, unknown>`) instead of casting.
 * **Partial Mocks in Tests:** In test fixtures, `as never` or partial mocks are permitted ONLY for isolating external third-party SDK dependencies.
 
 ### 13.3 Zero Suppression Directives
-* **The Rule:** Zero `eslint-disable` (in any form) and zero `biome-ignore`.
-* **Remedy:** If a linter or formatter rule triggers, fix the underlying code to comply. If a rule is fundamentally misconfigured for the project, update the central linter configuration globally across the monorepo; never silence it file-by-file.
+* **The Rule:** Zero `eslint-disable` (in any form) and zero `biome-ignore`, and the same in every language: `noqa`, `type: ignore`, `pragma: no cover`, `//nolint`, `@SuppressWarnings`, `#[allow(...)]`, `@phpstan-ignore`, `#pragma warning disable`, `// ignore:` (checked by `scripts/check-rules.py`).
+* **Remedy:** If a linter or formatter rule triggers, fix the underlying code to comply. If a rule is fundamentally misconfigured for the project, update the central linter configuration for the whole repository with the owner's approval; never silence it file-by-file.
 
 ### 13.4 Plain English Naming (Zero Jargon Policy)
 * **The Rule:** Use plain, descriptive everyday words for files, classes, methods, variables, database tables, and errors.
 * **Strictly Forbidden Jargon:**
-  - Technical buzzwords: "telemetry", "tenant", "control plane", "mutation payload", "holistic", "enterprise", "seal", "epoch".
+  - Technical buzzwords: "telemetry", "tenant" (name the boundary after the domain: project, workspace, organisation, shop; the standards use "tenant" only as the name of the concept), "control plane", "mutation payload", "holistic", "enterprise", "seal", "epoch".
   - Migration-era tags: "new", "old", "legacy", "v2", "core", "enhanced", "modern" (used to distinguish an old design from a new one).
   - Invented abbreviations.
 * **Code-Only Exceptions:** `purge` (permanent delete) and `upsert` (create or update) are permitted in internal repository code where required by storage contracts, but are strictly forbidden in text a human reads.

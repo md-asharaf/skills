@@ -14,6 +14,7 @@ CI toolchains for the `Toolchain` step of `ci/verify.yml`: `actions/setup-node` 
 
 1. Write the rule once, in the standard or the project's `AGENTS.md`, with an `Enforced by:` line.
 2. If a machine can detect a break, add the gate in the same change: a lint rule, a custom check, or a test. Measure how many existing violations it reports and fix them or record them in `docs/AUDIT_BACKLOG.md` before turning it on.
+2b. When the check finds existing violations that cannot all be fixed now, use a named allowlist (each entry with its reason or open item, and stale entries failing) or a per-file count baseline that may only go down; never a blanket file or folder exclusion.
 3. If no machine can detect it, mark it `review` and add it to `REVIEW.md`, the checklist the `standards-reviewer` agent and the owner use.
 4. A rule missed twice moves from `review` to a gate.
 
@@ -36,12 +37,12 @@ CI toolchains for the `Toolchain` step of `ci/verify.yml`: `actions/setup-node` 
 | External side effects only in jobs or adapters §6.5 | the same architecture tool as a forbidden-import or forbidden-call rule: sender, gateway and HTTP-client types allowed only in job handlers and adapter folders, with a reviewed allowlist |
 | No fire-and-forget | TS `@typescript-eslint/no-floating-promises` (`ignoreVoid: false`), `no-misused-promises`; Python ruff `RUF006`, `flake8-async`; Go `errcheck`; Rust `#![deny(unused_must_use)]`; Java Error Prone `FutureReturnValueIgnored`; C# `CS4014` as error; Dart `unawaited_futures`, `discarded_futures` |
 | No network call inside a transaction §6.3 | custom check (AST: no sender or gateway call inside a transaction callback); otherwise review |
-| Set-based queries, no N+1 §6.12 | query-count tests per route or use case (strongest, language-agnostic); TS `no-await-in-loop` scoped to services and repositories with an allowlist; Django `assertNumQueries`, `nplusone`; Rails `bullet`; Laravel `preventLazyLoading` |
+| Set-based queries, no N+1 §6.12 | query-count tests per route or use case (strongest, language-agnostic); an await-in-loop check scoped to services and repositories with a per-file baseline that only goes down (TS `no-await-in-loop` or an AST check; Python `flake8-async`); Django `assertNumQueries`, `nplusone`; Rails `bullet`; Laravel `preventLazyLoading` |
 | Lock order, constraints over read-then-write §6.6, §6.12 | concurrency integration tests; review |
 | Outbound timeouts §5.8 | custom check (every HTTP client built with a timeout); Go `noctx`, `bodyclose` |
 | Migrations journaled, forward-only, non-destructive §6.1, §6.10 | the migration tool's drift check (`drizzle-kit check`, `prisma migrate diff`, `alembic check`, `manage.py makemigrations --check`, `sqlx migrate info`); `squawk` for destructive Postgres DDL; `strong_migrations` (Rails); `django-migration-linter` |
 | Typed errors, one code per status §4 | custom check (no generic throws); a test comparing documented and thrown codes |
-| Tenant isolation §9.1 | cross-tenant integration tests for every tenant query path |
+| Customer data isolation §9.1 | integration tests proving one customer cannot read or change another's data, for every such query path |
 | Secrets §2.8 | `gitleaks` in the hook and CI; `.env.example` lockstep check (custom) |
 | Dependencies | `osv-scanner` (any language), or `npm audit`, `pip-audit`, `govulncheck`, `cargo audit` |
 | Runtime boot §10.4 | boot smoke test in CI |
@@ -74,7 +75,7 @@ CI toolchains for the `Toolchain` step of `ci/verify.yml`: `actions/setup-node` 
 | Hooks never bypassed, no push, no migrations | managed settings and the guard hook |
 | Gate files changed only with the owner | the guard asks; CI changes need owner review on the remote |
 | Single-line commit messages | `commit-msg` hook (`commitlint` or a custom check) |
-| `TASK.md` at most 30–40 lines, docs schemas §9.2 | custom check in the hook |
+| `TASK.md` at most 40 lines, docs schemas §9.2 | `check-rules.py` in the hook |
 | Inspection log before the first edit | `hooks/inspection-log.py` refuses the first code edit of a session (and after each compaction) until the log is in chat; review |
 | Judgement rules (patterns, reads per table, side effects, view states) | the `standards-reviewer` agent with `REVIEW.md` before each commit; owner review before push |
 | Other agents (Codex, Cursor, Copilot, Gemini) get the rules | `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.cursor/rules/standards.mdc` created by `setup-project.sh`; the gates and CI hold them like any agent |

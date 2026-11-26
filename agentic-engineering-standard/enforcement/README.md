@@ -8,7 +8,7 @@ Written rules alone are not enough: an agent can skip a rule it has not loaded, 
 | 2. Directory `CLAUDE.md` imports | Owner (protected by layer 1) | Backend or UI work without the matching standard in context |
 | 3. Project gates (lint, typecheck, custom checks, pre-commit hook) | Owner (protected by layer 1) | Every rule a machine can detect, before the commit exists |
 | 4. CI on the remote | Owner | Anything that slipped past the local hook, on a machine the agent never touches |
-| 5. Review: the `standards-reviewer` agent before each commit, the owner before each push, both with `REVIEW.md` | Owner | Judgement rules no check can detect (wrong pattern, needless reads, unclear names) |
+| 5. Review: the reviewer agent (the project's own, else `standards-reviewer`) before each commit, the owner before each push, both with `REVIEW.md` | Owner | Judgement rules no check can detect (wrong pattern, needless reads, unclear names) |
 
 ## Quick start
 
@@ -93,7 +93,7 @@ Copy `ci/verify.yml` to `.github/workflows/verify.yml` (or `ci/gitlab-ci.yml`, `
 
 ## 5. Owner review
 
-Before each commit of server or UI code the agent runs the `standards-reviewer` agent (linked into `~/.claude/agents` by `install-machine.sh`) on the staged diff and fixes its blockers. Before every push, read `git diff origin/main..HEAD` (or the pull request) against the same `REVIEW.md`. Every problem found twice becomes a check in layer 3.
+Before each commit of server or UI code the agent runs the reviewer agent on the staged diff: the project's own in `.claude/agents/` when it defines one (it must follow `REVIEW.md` and only add project rules), else `standards-reviewer` (linked into `~/.claude/agents` by `install-machine.sh`) and fixes its blockers. Before every push, read `git diff origin/main..HEAD` (or the pull request) against the same `REVIEW.md`. Every problem found twice becomes a check in layer 3.
 
 ## Limits
 
