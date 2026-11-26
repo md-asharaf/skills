@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SKILLS_SOURCE="${HOME}/coding/skills"
+SKILLS_SOURCE="${SKILLS_SOURCE:-${HOME}/coding/skills}"
 ENFORCEMENT="${SKILLS_SOURCE}/agentic-engineering-standard/enforcement"
 SCRIPTS="${SKILLS_SOURCE}/agentic-engineering-standard/scripts"
 MODE="setup"
@@ -43,6 +43,7 @@ TODAY=$(date +"%Y-%m-%d")
 CREATED=()
 MISSING=()
 OWNER=()
+LOCAL_ONLY=0
 
 create() {
   local path="$1"
@@ -51,6 +52,53 @@ create() {
   mkdir -p "$(dirname "$path")"
   cat > "$path"
   CREATED+=("$path")
+}
+
+any_file_exists() {
+  local path
+  for path in "$@"; do
+    [ -f "$path" ] && return 0
+  done
+  return 1
+}
+
+file_contains() {
+  local text="$1"
+  shift
+  local path
+  for path in "$@"; do
+    [ -f "$path" ] && grep -Fq -- "$text" "$path" && return 0
+  done
+  return 1
+}
+
+has_gate_invocation() {
+  local mode="$1"
+  shift
+  local path
+  local pattern="^[[:space:]]*(-[[:space:]]+)?(run:|script:|command:|entry:)?[[:space:]]*(exec[[:space:]]+)?(\\./)?scripts/gates\\.sh[[:space:]]+${mode}([[:space:]]|$)"
+  local shell_pattern="^[[:space:]]*sh[[:space:]]+['\"](\\./)?scripts/gates\\.sh[[:space:]]+${mode}['\"]"
+  for path in "$@"; do
+    [ -f "$path" ] || continue
+    if grep -Eqs "$pattern" "$path" || grep -Eqs "$shell_pattern" "$path"; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+has_secret_scan() {
+  local path
+  for path in "$@"; do
+    [ -f "$path" ] || continue
+    if grep -Eqs '^[[:space:]]*(-[[:space:]]+)?(run:|script:|command:)?[[:space:]]*(\./)?gitleaks[[:space:]]+git([[:space:]]|$)' "$path"; then
+      return 0
+    fi
+  done
+  if has_gate_invocation ci "$@" && [ -x scripts/gates.sh ] && grep -Eq '^[[:space:]]*gitleaks[[:space:]]+git([[:space:]]|$)' scripts/gates.sh; then
+    return 0
+  fi
+  return 1
 }
 
 if [ ! -d .git ]; then
@@ -109,6 +157,12 @@ POINTER="Read and follow AGENTS.md and .skills/agentic-engineering-standard/HARD
 create GEMINI.md <<'EOF' || true
 @AGENTS.md
 @.skills/agentic-engineering-standard/HARD-RULES.md
+
+Read matching sections with `grep -n '^##'` before editing (never inline-expand full manuals with `@`):
+- Server code: `.skills/backend-engineering-standard/SKILL.md`
+- UI code: `.skills/frontend-engineering-standard/SKILL.md`
+- Monorepo layout: `.skills/universal-enterprise-monorepo/SKILL.md`
+- Before commit: `.skills/agentic-engineering-standard/enforcement/REVIEW.md`
 EOF
 
 create .github/copilot-instructions.md <<EOF || true
@@ -122,6 +176,34 @@ alwaysApply: true
 ---
 ${POINTER}
 EOF
+
+require_pointer() {
+  local path="$1"
+  local text="$2"
+  if [ -f "$path" ] && ! grep -Fq -- "$text" "$path"; then
+    MISSING+=("${path} is missing required instruction: ${text}")
+  fi
+}
+
+require_pointer AGENTS.md "SPEC.md"
+require_pointer AGENTS.md ".skills/agentic-engineering-standard/HARD-RULES.md"
+require_pointer CLAUDE.md "@AGENTS.md"
+require_pointer GEMINI.md "@AGENTS.md"
+require_pointer GEMINI.md ".skills/agentic-engineering-standard/HARD-RULES.md"
+require_pointer GEMINI.md ".skills/backend-engineering-standard/SKILL.md"
+require_pointer GEMINI.md ".skills/frontend-engineering-standard/SKILL.md"
+require_pointer GEMINI.md ".skills/agentic-engineering-standard/enforcement/REVIEW.md"
+require_pointer .github/copilot-instructions.md "AGENTS.md"
+require_pointer .github/copilot-instructions.md "HARD-RULES.md"
+require_pointer .github/copilot-instructions.md ".skills/backend-engineering-standard/SKILL.md"
+require_pointer .github/copilot-instructions.md ".skills/frontend-engineering-standard/SKILL.md"
+require_pointer .github/copilot-instructions.md ".skills/agentic-engineering-standard/enforcement/REVIEW.md"
+require_pointer .cursor/rules/standards.mdc "alwaysApply: true"
+require_pointer .cursor/rules/standards.mdc "AGENTS.md"
+require_pointer .cursor/rules/standards.mdc "HARD-RULES.md"
+require_pointer .cursor/rules/standards.mdc ".skills/backend-engineering-standard/SKILL.md"
+require_pointer .cursor/rules/standards.mdc ".skills/frontend-engineering-standard/SKILL.md"
+require_pointer .cursor/rules/standards.mdc ".skills/agentic-engineering-standard/enforcement/REVIEW.md"
 
 create TASK.md <<EOF || true
 # Active Task State
@@ -221,15 +303,11 @@ for dir in docs/designs docs/reports; do
   fi
 done
 
-link_standard() {
-  local dir="$1" standard="$2" title="$3"
-  [ -d "$dir" ] || return 0
-  local rel
-  rel=$(python3 -c "import os,sys;print(os.path.relpath(sys.argv[1],sys.argv[2]))" "$(pwd)/.skills/${standard}/SKILL.md" "$(pwd)/${dir}")
-  local line="@${rel}"
-  local file="${dir}/CLAUDE.md"
-  if [ -f "$file" ] && grep -qF "$line" "$file"; then return 0; fi
-  if [ "$MODE" = "check" ]; then MISSING+=("${file} import of ${standard}"); return 0; fi
+link_into() {
+  local file="$1" rel="$2" title="$3" standard="$4"
+  local line="Read matching sections of \`${rel}\` (locate with \`grep -n '^##'\`) before the first edit."
+  if [ -f "$file" ] && grep -qF "${standard}/SKILL.md" "$file"; then return 0; fi
+  if [ "$MODE" = "check" ]; then MISSING+=("${file} pointer to ${standard}"); return 0; fi
   if [ -f "$file" ]; then
     python3 - "$file" "$line" <<'PY'
 import sys
@@ -245,7 +323,18 @@ PY
   else
     printf '# %s\n\n%s\n\nBefore the first edit of a task here, write the Primary Source Inspection Log in chat: the standard sections read and the existing file followed.\n' "$title" "$line" > "$file"
   fi
-  CREATED+=("${file} import of ${standard}")
+  CREATED+=("${file} pointer to ${standard}")
+}
+
+link_standard() {
+  local dir="$1" standard="$2" title="$3"
+  [ -d "$dir" ] || return 0
+  local rel
+  rel=$(python3 -c "import os,sys;print(os.path.relpath(sys.argv[1],sys.argv[2]))" "$(pwd)/.skills/${standard}/SKILL.md" "$(pwd)/${dir}")
+  link_into "${dir}/CLAUDE.md" "$rel" "$title" "$standard"
+  if [ "$dir" != "." ]; then
+    link_into "${dir}/AGENTS.md" "$rel" "$title" "$standard"
+  fi
 }
 
 DETECTED=$(python3 "${SCRIPTS}/detect-project.py" .)
@@ -267,10 +356,17 @@ if python3 -c "import json,sys;sys.exit(0 if json.loads(sys.argv[1])['workspace'
   link_standard . universal-enterprise-monorepo "Repository rules"
 fi
 if [ ${#BACKEND_DIRS[@]} -eq 0 ] && [ ${#FRONTEND_DIRS[@]} -eq 0 ]; then
-  MISSING+=("no server or UI part detected: rerun with --backend <dir> and/or --frontend <dir> once the code exists")
+  MISSING+=("unverified application profile: no supported server or UI framework was detected; add and test a profile before setup can pass")
 fi
+if [ "$ECOSYSTEMS" = "none detected" ]; then
+  MISSING+=("unverified stack: no supported language profile was detected; add and test a profile before treating setup as complete")
+fi
+case "$ECOSYSTEMS" in
+  *ruby*|*swift*) MISSING+=("unverified language profile: Ruby and Swift are detected but have no complete gate matrix in ${ENFORCEMENT}/GATES.md");;
+esac
 
-if ls .github/workflows/*.y*ml .gitlab-ci.yml .gitlab-ci.yaml .circleci/config.yml Jenkinsfile azure-pipelines.yml bitbucket-pipelines.yml >/dev/null 2>&1; then :; else
+CI_FILES=(.github/workflows/*.y*ml .gitlab-ci.yml .gitlab-ci.yaml .circleci/config.yml Jenkinsfile azure-pipelines.yml bitbucket-pipelines.yml)
+if any_file_exists "${CI_FILES[@]}"; then :; else
   MISSING+=("CI that runs the gates (templates in ${ENFORCEMENT}/ci: verify.yml for GitHub, gitlab-ci.yml, bitbucket-pipelines.yml, Jenkinsfile)")
 fi
 if grep -rqs "REPLACE_WITH_TOOLCHAIN\|Replace this step with the setup actions" .github .gitlab-ci.yml bitbucket-pipelines.yml Jenkinsfile 2>/dev/null; then
@@ -278,33 +374,63 @@ if grep -rqs "REPLACE_WITH_TOOLCHAIN\|Replace this step with the setup actions" 
 fi
 if [ ! -x scripts/gates.sh ]; then
   MISSING+=("scripts/gates.sh with 'staged' and 'ci' modes, called by both the pre-commit hook and CI (template: ${ENFORCEMENT}/templates/gates.sh)")
+elif ! grep -Eq '^[[:space:]]*staged\)' scripts/gates.sh || ! grep -Eq '^[[:space:]]*ci\)' scripts/gates.sh; then
+  MISSING+=("scripts/gates.sh is missing staged or ci modes")
+elif grep -Eq 'fill_in|REPLACE_WITH_TOOLCHAIN|Replace this step' scripts/gates.sh; then
+  MISSING+=("scripts/gates.sh still contains an unfilled gate placeholder")
 fi
-if [ -f .husky/pre-commit ] || [ -f lefthook.yml ] || [ -f lefthook.yaml ] || [ -f .pre-commit-config.yaml ] || [ -x .git/hooks/pre-commit ]; then :; else
+if [ -x scripts/gates.sh ] && ! grep -Eq '^[[:space:]]*gitleaks[[:space:]]+git([[:space:]]+--pre-commit)?[[:space:]]+--staged([[:space:]]|$)' scripts/gates.sh; then
+  MISSING+=("scripts/gates.sh staged mode does not run gitleaks git --staged")
+fi
+if [ -x scripts/gates.sh ] && ! grep -Eq '^[[:space:]]*python3([[:space:]]+-[A-Za-z]+)*[[:space:]]+scripts/checks/check-rules\.py([[:space:]]|$)' scripts/gates.sh; then
+  MISSING+=("scripts/gates.sh does not run scripts/checks/check-rules.py")
+fi
+HOOK_FILES=(.husky/pre-commit lefthook.yml lefthook.yaml .pre-commit-config.yaml .git/hooks/pre-commit)
+if any_file_exists "${HOOK_FILES[@]}"; then
+  if ! has_gate_invocation staged "${HOOK_FILES[@]}"; then
+    MISSING+=("pre-commit hook does not run scripts/gates.sh staged")
+  fi
+else
   MISSING+=("pre-commit hook running ./scripts/gates.sh staged (template: ${ENFORCEMENT}/templates/pre-commit)")
 fi
 if [ -f .husky/commit-msg ] || grep -qs "commit-msg" lefthook.y*ml .pre-commit-config.yaml 2>/dev/null || [ -x .git/hooks/commit-msg ]; then :; else
   MISSING+=("commit-msg hook, single-line Conventional Commit (template: ${ENFORCEMENT}/templates/commit-msg)")
 fi
-if ! grep -rqs "gitleaks\|trufflehog" .husky .pre-commit-config.yaml lefthook.y*ml .github .gitlab-ci.yml 2>/dev/null; then
-  MISSING+=("secret scan (gitleaks) in the hook and CI")
+if any_file_exists "${CI_FILES[@]}" && ! has_gate_invocation ci "${CI_FILES[@]}"; then
+  MISSING+=("CI does not run scripts/gates.sh ci")
 fi
-if ! ls cspell.json .cspell.json cspell.config.* >/dev/null 2>&1; then
+if any_file_exists "${CI_FILES[@]}" && ! has_secret_scan "${CI_FILES[@]}"; then
+  MISSING+=("CI does not run gitleaks git")
+fi
+SPELL_CONFIGS=(cspell.json .cspell.json cspell.config.*)
+if ! any_file_exists "${SPELL_CONFIGS[@]}"; then
   MISSING+=("jargon check: cspell with flagWords in the hook and CI (template: ${ENFORCEMENT}/templates/cspell.json; run with --report flagged)")
+elif ! file_contains "flagWords" "${SPELL_CONFIGS[@]}"; then
+  MISSING+=("cspell configuration is missing flagWords")
 fi
+has_eslint_rule() {
+  local pattern="$1"
+  if grep -rqs "$pattern" --include='eslint.config.*' --include='.eslintrc*' --exclude-dir=node_modules --exclude-dir=.skills --exclude-dir=dist . 2>/dev/null; then
+    return 0
+  fi
+  if [ -d packages ] && grep -rqs "$pattern" --include='*.js' --include='*.mjs' --include='*.ts' --exclude-dir=node_modules --exclude-dir=dist packages/*eslint* 2>/dev/null; then
+    return 0
+  fi
+  return 1
+}
+
 case ",${ECOSYSTEMS}," in *typescript*)
-  grep -rqs "no-floating-promises" --include='eslint.config.*' --include='.eslintrc*' --exclude-dir=node_modules --exclude-dir=.skills --exclude-dir=dist . 2>/dev/null \
-    || MISSING+=("typescript: @typescript-eslint/no-floating-promises (ignoreVoid false) and no-misused-promises");;
+  has_eslint_rule "no-floating-promises" || MISSING+=("typescript: @typescript-eslint/no-floating-promises (ignoreVoid false) and no-misused-promises");;
 esac
 case ",${ECOSYSTEMS}," in *python*)
-  ls mypy.ini pyrightconfig.json >/dev/null 2>&1 || grep -qs "tool.mypy\|tool.pyright" pyproject.toml \
+  any_file_exists mypy.ini pyrightconfig.json || grep -qs "tool.mypy\|tool.pyright" pyproject.toml \
     || MISSING+=("python: strict type checking (mypy --strict or pyright strict)");;
 esac
 case ",${ECOSYSTEMS}," in *go*)
-  ls .golangci.y*ml >/dev/null 2>&1 || MISSING+=("go: golangci-lint with errcheck, depguard, forbidigo, noctx");;
+  any_file_exists .golangci.y*ml || MISSING+=("go: golangci-lint with errcheck, depguard, forbidigo, noctx");;
 esac
 case ",${ECOSYSTEMS}," in *javascript*)
-  grep -rqs "catch-or-return\|no-floating-promises" --include='eslint.config.*' --include='.eslintrc*' --exclude-dir=node_modules --exclude-dir=.skills . 2>/dev/null \
-    || MISSING+=("javascript: eslint-plugin-promise catch-or-return and no-console (or move to TypeScript for no-floating-promises)");;
+  has_eslint_rule "catch-or-return\|no-floating-promises" || MISSING+=("javascript: eslint-plugin-promise catch-or-return and no-console (or move to TypeScript for no-floating-promises)");;
 esac
 case ",${ECOSYSTEMS}," in *rust*)
   grep -rqs "unused_must_use\|clippy" Cargo.toml clippy.toml .cargo/config.toml src/lib.rs src/main.rs 2>/dev/null \
@@ -319,18 +445,31 @@ case ",${ECOSYSTEMS}," in *dotnet*)
     || MISSING+=("dotnet: <TreatWarningsAsErrors>, <Nullable>enable</Nullable>, CS4014 as error, NetArchTest");;
 esac
 case ",${ECOSYSTEMS}," in *php*)
-  ls phpstan.neon* psalm.xml >/dev/null 2>&1 || MISSING+=("php: PHPStan or Psalm at max level, deptrac for layers");;
+  any_file_exists phpstan.neon* psalm.xml || MISSING+=("php: PHPStan or Psalm at max level, deptrac for layers");;
 esac
 case ",${ECOSYSTEMS}," in *ruby*)
-  ls .rubocop.yml >/dev/null 2>&1 || MISSING+=("ruby: rubocop with no disabled cops, strong_migrations, bullet for N+1");;
+  any_file_exists .rubocop.yml || MISSING+=("ruby: rubocop with no disabled cops, strong_migrations, bullet for N+1");;
 esac
 case ",${ECOSYSTEMS}," in *dart*)
   grep -qs "strict-casts" analysis_options.yaml || MISSING+=("dart: analysis_options.yaml with strict-casts, strict-inference, unawaited_futures, avoid_print");;
 esac
 case ",${ECOSYSTEMS}," in *swift*)
-  ls .swiftlint.yml >/dev/null 2>&1 || MISSING+=("swift: SwiftLint with warnings as errors");;
+  any_file_exists .swiftlint.yml || MISSING+=("swift: SwiftLint with warnings as errors");;
 esac
-MISSING+=("for every rule of the standards, pick its gate for: ${ECOSYSTEMS} (${ENFORCEMENT}/GATES.md) and record it as an 'Enforced by:' line in AGENTS.md")
+if [ -f AGENTS.md ]; then
+  if ! RULE_OUTPUT=$(python3 "${SCRIPTS}/check-rules.py" --skip-code . 2>&1); then
+    printf '%s\n' "$RULE_OUTPUT"
+    MISSING+=("project rules or memory checks failed (see check-rules.py output above)")
+  fi
+fi
+for path in AGENTS.md TASK.md SPEC.md docs/AUDIT_BACKLOG.md; do
+  if [ -e "$path" ] && git check-ignore -q "$path"; then
+    LOCAL_ONLY=1
+  fi
+done
+if [ "$LOCAL_ONLY" -eq 1 ]; then
+  OWNER+=("Key guidance or memory files are ignored by Git; cross-device continuity is unverified until approved files are tracked")
+fi
 
 if ! cmp -s "${ENFORCEMENT}/managed-settings.json" /etc/claude-code/managed-settings.json 2>/dev/null \
   || ! cmp -s "${ENFORCEMENT}/hooks/guard.py" /etc/claude-code/hooks/guard.py 2>/dev/null \
@@ -357,3 +496,15 @@ for item in "${MISSING[@]}"; do echo "  - ${item}"; done
 echo
 echo "Owner actions (${#OWNER[@]}):"
 for item in "${OWNER[@]}"; do echo "  ! ${item}"; done
+if [ "$MODE" = "check" ]; then
+  if [ ${#MISSING[@]} -eq 0 ]; then
+    if [ "$LOCAL_ONLY" -eq 1 ]; then
+      echo "Setup check passed locally; cross-device continuity unverified"
+    else
+      echo "Setup check passed"
+    fi
+  else
+    echo "Setup check failed"
+    exit 1
+  fi
+fi

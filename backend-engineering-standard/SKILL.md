@@ -20,6 +20,10 @@ description: |
 > * Agent process, verification strategy, git, task state, and the code rules shared by every language: **`agentic-engineering-standard`**.
 > * UI craftsmanship: **`frontend-engineering-standard`**. Workspace topology and build pipelines: **`universal-enterprise-monorepo`**.
 
+### Applicability
+
+Apply only the rules that match the project's specification and technology. Framework, database, queue, storage, and provider-specific requirements are conditional; for example, PostgreSQL-specific guidance applies only when the project uses PostgreSQL. Do not introduce a technology or architecture solely to satisfy an example in this standard. If applicability is unclear or conflicts with the project specification, stop and ask.
+
 ---
 
 ## 1. Backend Code Invariants

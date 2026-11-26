@@ -13,7 +13,7 @@ description: |
 
 **Classification:** Global Frontend Architectural Standard & UI/UX Craftsmanship Constitution  
 **Target Environments:** React, Next.js, Vue, Nuxt, Svelte, Vite, React Native, Tailwind CSS, Web Components  
-**Core Invariant:** Beautiful, high-density, accessible, and resilient user interfaces built with absolute design system consistency, zero raw HTML primitives in feature views, zero layout shifts, and zero developer jargon.
+**Core Invariant:** Accessible and resilient user interfaces that follow the project's design system, avoid layout shifts, and use clear language.
 
 > **Domain Separation Notice:** This standard governs user interfaces: components, states, tokens, UX rules, UI copy, accessibility and UI tests.
 > * Agent process, verification strategy, git, and the code rules shared by every language (comments, types, naming in code): **`agentic-engineering-standard`**.
@@ -21,11 +21,11 @@ description: |
 
 ---
 
-## 1. The Law of Zero Raw Inline HTML Primitives & Exhaustive Variant Definitions
+## 1. Prefer Design-System Primitives for Reusable UI
 
-Feature pages, views, modals, drawers, and form components **MUST NEVER use raw HTML primitive elements** for interactive or structural UI. Every interactive control, typography element, form input, surface, badge, card, and data display MUST be rendered using design system custom primitives with explicit, exhaustive, typed variants.
+When a project has a design system, use its existing primitives for interactive controls and repeated visual patterns. Native semantic HTML remains appropriate for landmarks, text, lists, and structural layout, and where the project has no suitable primitive. Do not add wrapper components only to avoid using semantic HTML. Follow the project specification and its accessibility requirements.
 
-| 🔴 Banned Raw HTML Element | 🟢 Mandatory Custom Primitive | Required Props & Variants |
+| Ad hoc pattern | Prefer the shared primitive when one exists | Useful props and variants |
 | :--- | :--- | :--- |
 | `<button className="...">` | `<Button variant="primary">` | `variant`, `size`, `isLoading`, `icon` |
 | `<input type="text" className="...">` | `<Input label="..." error="..." />` | `label`, `error`, `helperText` |

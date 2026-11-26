@@ -83,6 +83,9 @@ FILE_CASES = [
     ("/x/TASK.md", "allow"),
     ("/x/.gitleaksignore", "ask"),
     ("/x/scripts/checks/rules-allow.txt", "ask"),
+    ("/x/vitest.config.ts", "ask"),
+    ("/x/playwright.config.mjs", "ask"),
+    ("/x/pytest.ini", "ask"),
 ]
 
 

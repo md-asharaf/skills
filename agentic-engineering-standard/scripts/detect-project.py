@@ -2,6 +2,7 @@
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -77,13 +78,39 @@ def is_workspace(root: Path) -> bool:
     return cargo.is_file() and "[workspace]" in cargo.read_text(errors="ignore")
 
 
+def ignored_names(root: Path, current: Path, dirs: list[str]) -> set[str]:
+    if not dirs or not (root / ".git").exists():
+        return set()
+    rel = Path(current).relative_to(root)
+    candidates = [str(rel / name) if str(rel) != "." else name for name in dirs]
+    result = subprocess.run(
+        ["git", "-C", str(root), "check-ignore", "--stdin"],
+        input="\n".join(candidates) + "\n",
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode not in (0, 1):
+        return set()
+    ignored = set()
+    for line in result.stdout.splitlines():
+        name = Path(line.strip()).name
+        if name:
+            ignored.add(name)
+    return ignored
+
+
 def main() -> int:
     root = Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
     parts = []
     ecosystems: set[str] = set()
     for current, dirs, _files in os.walk(root):
         depth = len(Path(current).relative_to(root).parts)
-        dirs[:] = [d for d in dirs if d not in SKIP and not d.startswith(".")] if depth < MAX_DEPTH else []
+        if depth < MAX_DEPTH:
+            candidates = [d for d in dirs if d not in SKIP and not d.startswith(".")]
+            ignored = ignored_names(root, Path(current), candidates)
+            dirs[:] = [d for d in candidates if d not in ignored]
+        else:
+            dirs[:] = []
         roles, found = classify(Path(current))
         ecosystems |= found
         if roles:

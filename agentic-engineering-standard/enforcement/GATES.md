@@ -6,9 +6,15 @@ Each rule of the four standards is held by at least one layer (see `README.md`).
 
 ## One gate entry point per project
 
-Every project exposes `scripts/gates.sh` (template: `templates/gates.sh`, with `templates/pre-commit` and `templates/commit-msg` for the hooks, `templates/cspell.json` for jargon) with two modes: `staged` (fast gates on staged files, run by the pre-commit hook) and `ci` (every gate, run by CI). Both the hook and CI call it, so they can never drift apart. It is a gate file: the guard asks the owner before any change. In a project that already has a gate runner (`verify-all.mjs`, `make check`, `nox`, `mage`), `gates.sh` only calls it.
+Every project exposes `scripts/gates.sh` (template: `templates/gates.sh`, with `templates/pre-commit` and `templates/commit-msg` for the hooks, `templates/cspell.json` for jargon) with two modes: `staged` (fast gates on staged files, run by the pre-commit hook) and `ci` (every gate, run by CI). Both the hook and CI call it, so they can never drift apart. Setup checks verify that both commands are wired, that the runner defines both modes without template placeholders, and that CI and the staged gate run the secret scan. They also verify that the cspell configuration defines `flagWords` and that each agent entrypoint contains the required instruction links. It is a gate file: the guard asks the owner before any change. In a project that already has a gate runner (`verify-all.mjs`, `make check`, `nox`, `mage`), `gates.sh` only calls it.
 
-CI toolchains for the `Toolchain` step of `ci/verify.yml`: `actions/setup-node` with `pnpm/action-setup` (TS/JS), `actions/setup-python` with `astral-sh/setup-uv` (Python), `actions/setup-go` (Go), `actions/setup-java` (JVM), `dtolnay/rust-toolchain` (Rust), `shivammathur/setup-php` (PHP), `actions/setup-dotnet` (C#), `subosito/flutter-action` (Dart/Flutter), `ruby/setup-ruby` (Ruby). Services the tests need (PostgreSQL, Redis) go under `services:`. Templates for the other systems: `ci/gitlab-ci.yml`, `ci/bitbucket-pipelines.yml`, `ci/Jenkinsfile`. Every template fails until its `REPLACE_WITH_TOOLCHAIN` marker is replaced, and `setup-project.sh` reports any marker left.
+CI toolchains for the `Toolchain` step of `ci/verify.yml`: `actions/setup-node` with `pnpm/action-setup` (TS/JS), `actions/setup-python` with `astral-sh/setup-uv` (Python), `actions/setup-go` (Go), `actions/setup-java` (JVM), `dtolnay/rust-toolchain` (Rust), `shivammathur/setup-php` (PHP), `actions/setup-dotnet` (C#), `subosito/flutter-action` (Dart/Flutter), `ruby/setup-ruby` (Ruby). Pin GitHub Actions to full commit SHAs and verify downloaded tools against a fixed checksum before extracting them. Services the tests need (PostgreSQL, Redis) go under `services:`. Templates for the other systems: `ci/gitlab-ci.yml`, `ci/bitbucket-pipelines.yml`, `ci/Jenkinsfile`. Every template fails until its `REPLACE_WITH_TOOLCHAIN` marker is replaced, and `setup-project.sh` reports any marker left.
+
+## Profile coverage contract
+
+The language and framework rows below are maintained profiles, not an exhaustive list of every technology. Each supported profile must state how it is detected, which standards apply, how agent instructions are loaded, which local and CI gates run, and how its tests and runtime behavior are verified. Agent instruction entrypoints must be tested for each supported agent.
+
+The agentic standard applies to every project. Backend, frontend, and monorepo standards apply only when the project contains that kind of work. Technology-specific rules apply only when the project uses that technology. A project with an unknown language, framework, or agent is unverified until a profile is added and tested; setup checks must not report it as ready. Add a profile with its detection and failure-case tests before claiming support.
 
 ## Adding any new rule (any project, any feature)
 
@@ -52,7 +58,7 @@ CI toolchains for the `Toolchain` step of `ci/verify.yml`: `actions/setup-node` 
 
 | Rule | Gate |
 | :--- | :--- |
-| No raw HTML primitives, typed variants §1–2 | React `react/forbid-elements` or `no-restricted-syntax`; Vue `vue/no-restricted-html-elements`; Svelte and Angular custom template check; Flutter `custom_lint` |
+| Shared UI primitives and semantic HTML §1–2 | review for design-system reuse; framework accessibility lint (§7) |
 | Five view states §3, §9.1 | component tests for each state (Storybook stories with interaction tests, Testing Library, Flutter widget tests) |
 | Design tokens only §4 | `stylelint` `declaration-strict-value`, `color-no-hex`; Tailwind `no-arbitrary-value`; Flutter custom check on literal colours and sizes |
 | Accessibility §7 | `eslint-plugin-jsx-a11y` or `vuejs-accessibility`; `axe-core` in browser tests; Flutter `meetsGuideline` tests |
@@ -75,7 +81,7 @@ CI toolchains for the `Toolchain` step of `ci/verify.yml`: `actions/setup-node` 
 | Hooks never bypassed, no push, no migrations | managed settings and the guard hook |
 | Gate files changed only with the owner | the guard asks; CI changes need owner review on the remote |
 | Single-line commit messages | `commit-msg` hook (`commitlint` or a custom check) |
-| `TASK.md` at most 40 lines, docs schemas §9.2 | `check-rules.py` in the hook |
+| `TASK.md` at most 40 lines, `AGENTS.md` <= 12 KB (<= 32 KiB chain, `GEMINI.md` <= 24 KB, `CLAUDE.md` <= 40 KB, no `@` inline expansion of full `SKILL.md` manuals), docs schemas §9.2 | `check-rules.py` in the hook and CI |
 | Inspection log before the first edit | `hooks/inspection-log.py` refuses the first code edit of a session (and after each compaction) until the log is in chat; review |
 | Judgement rules (patterns, reads per table, side effects, view states) | the `standards-reviewer` agent with `REVIEW.md` before each commit; owner review before push |
 | Other agents (Codex, Cursor, Copilot, Gemini) get the rules | `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.cursor/rules/standards.mdc` created by `setup-project.sh`; the gates and CI hold them like any agent |

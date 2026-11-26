@@ -25,6 +25,7 @@ PROTECTED_PATHS = [
     r"(^|/)bitbucket-pipelines\.ya?ml",
     r"(^|/)scripts/(verify|checks|gates)",
     r"(^|/)eslint\.config\.|(^|/)\.eslintrc",
+    r"(^|/)(vitest|jest|playwright)\.config\.|(^|/)pytest\.ini$",
     r"(^|/)biome\.jsonc?",
     r"(^|/)\.?stylelintrc|(^|/)stylelint\.config\.",
     r"(^|/)\.?cspell\.json|(^|/)cspell\.config\.",

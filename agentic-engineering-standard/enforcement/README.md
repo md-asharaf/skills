@@ -61,17 +61,17 @@ You push yourself after reading the diff: type `! git push` in the session, or p
 
 ## 2. Load the standards by directory (once per project, done by `/project-setup`)
 
-Claude Code loads a folder's `CLAUDE.md` when the agent works on files in that folder. Put the standard there, so it is in context without the agent having to remember it:
+Agents read a folder's `CLAUDE.md` and `AGENTS.md` when working in that folder. Because the backend and frontend manuals are 23–50 KB each, keep directory files concise pointers with `grep -n '^##'` instead of `@`-expanding full `SKILL.md` files inline:
 
 ```markdown
-<!-- apps/api/CLAUDE.md (or server/, backend/) -->
-@../../.skills/backend-engineering-standard/SKILL.md
+<!-- apps/api/CLAUDE.md and apps/api/AGENTS.md -->
+Read matching sections of `../../.skills/backend-engineering-standard/SKILL.md` (locate with `grep -n '^##'`) before the first edit.
 
-<!-- apps/web/CLAUDE.md (or client/, frontend/) -->
-@../../.skills/frontend-engineering-standard/SKILL.md
+<!-- apps/web/CLAUDE.md and apps/web/AGENTS.md -->
+Read matching sections of `../../.skills/frontend-engineering-standard/SKILL.md` (locate with `grep -n '^##'`) before the first edit.
 ```
 
-`.skills` is a gitignored symlink to `~/coding/skills`. Keep the project's own `CLAUDE.md` and `AGENTS.md` short: project facts, the commands to run, and pointers to the pattern files to copy. Every rule that can be checked belongs in layer 3, not in prose.
+`.skills` is a gitignored symlink to `~/coding/skills`. Keep root `AGENTS.md` as a thin router (`<= 12 KB`): project facts, commands, keyword-only `SPEC.md` topic map (no line numbers, no decision summaries), and `Patterns to copy`. Keep `CLAUDE.md` importing `@AGENTS.md`, and keep `GEMINI.md` expanding only `@AGENTS.md` and `@.skills/agentic-engineering-standard/HARD-RULES.md` (staying under Antigravity's 24 KB limit) with plain pointers to full `SKILL.md` files. Every rule that a machine can check belongs in layer 3, not in prose.
 
 ## 3. Project gates (checklist)
 

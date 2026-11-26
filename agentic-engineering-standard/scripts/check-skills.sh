@@ -6,7 +6,10 @@ BASE="$ROOT/agentic-engineering-standard"
 
 python3 "$BASE/enforcement/hooks/guard_test.py"
 python3 "$BASE/enforcement/hooks/inspection_log_test.py"
+python3 "$BASE/enforcement/hooks/session_check_test.py"
 python3 "$BASE/scripts/check_rules_test.py"
+python3 "$BASE/scripts/setup_project_test.py"
+python3 "$BASE/scripts/workflow_policy_test.py"
 python3 "$BASE/scripts/check-rules.py" "$ROOT"
 for script in "$BASE"/enforcement/templates/gates.sh "$BASE"/enforcement/templates/pre-commit "$BASE"/enforcement/templates/commit-msg; do bash -n "$script"; done
 for file in "$BASE"/enforcement/templates/*.json; do python3 -m json.tool "$file" >/dev/null; done

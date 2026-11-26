@@ -68,14 +68,39 @@ def main() -> int:
         ("task section missing", {"TASK.md": "# Active Task State\n## 1. Goal\n"}, ["TASK.md: missing", "TASK.md: missing", "TASK.md: missing"]),
         ("loose docs file", {"docs/notes.md": "x"}, ["docs/notes.md"]),
         ("archive name", {"docs/archive/done.md": "x"}, ["docs/archive/done.md"]),
-        ("audit type", {"docs/AUDIT_BACKLOG.md": "| OI-01 | risk | d | s | w | x |\n## Counts\n"}, ["docs/AUDIT_BACKLOG.md:1"]),
+        ("audit type", {"docs/AUDIT_BACKLOG.md": "| OI-01 | risk | d | s | w | x |\n## Counts\n- FIX: 0 | VERIFY: 0 | DECIDE: 0 | WATCH: 0 | Total: 0\n"}, ["docs/AUDIT_BACKLOG.md:1"]),
+        ("audit counts", {"docs/AUDIT_BACKLOG.md": "| OI-01 | FIX | d | s | w | x |\n## Counts\n- FIX: 0 | VERIFY: 0 | DECIDE: 0 | WATCH: 0 | Total: 0\n"}, ["docs/AUDIT_BACKLOG.md: Counts do not match"]),
+        ("audit counts match", {"docs/AUDIT_BACKLOG.md": "| OI-01 | FIX | d | s | w | x |\n## Counts\n- FIX: 1 | VERIFY: 0 | DECIDE: 0 | WATCH: 0 | Total: 1\n"}, []),
+        ("audit compact ids match", {"docs/AUDIT_BACKLOG.md": "| O2 | FIX | d | s | w | x |\n| C06 | WATCH | d | s | w | x |\n## Counts\n- FIX: 1 | VERIFY: 0 | DECIDE: 0 | WATCH: 1 | Total: 2\n"}, []),
+        ("docs allowlist", {"docs/openapi.yaml": "openapi: 3.1.0\n", "scripts/checks/rules-allow.txt": "docs/openapi.yaml docs\n"}, []),
+        ("task open-item count", {"TASK.md": TASK_OK + "\nOpen items (2)\n", "docs/AUDIT_BACKLOG.md": "| OI-01 | FIX | d | s | w | x |\n## Counts\n- FIX: 1 | VERIFY: 0 | DECIDE: 0 | WATCH: 0 | Total: 1\n"}, ["TASK.md: open-item count 2 does not match AUDIT_BACKLOG.md count 1"]),
         ("decision heading", {"docs/DECISIONS.md": "## ADR-001: Good (2026-01-01)\n## Notes\n"}, ["docs/DECISIONS.md:2"]),
     ]
     for name, files, expected in memory_cases:
         found = run(files)
         if not matches(found, expected):
             failures.append(f"{name}: expected {expected}, got {found}")
-    total = len(CASES) + len(memory_cases)
+    rule_cases = [
+        ("rule gate present", {"AGENTS.md": "## 4. Invariant Engineering Laws\n1. **Clear rules**\n*Enforced by: review.*\n### Frontend\n"}, []),
+        ("rule gate missing", {"AGENTS.md": "## 4. Invariant Engineering Laws\n1. **Clear rules**\n### Frontend\n"}, ["AGENTS.md: rule 1 is missing an Enforced by annotation"]),
+        ("agent file over byte limit", {"AGENTS.md": "a" * 12500}, ["AGENTS.md: 12500 bytes"]),
+        ("oversized inline skill import", {"GEMINI.md": "@.skills/backend-engineering-standard/SKILL.md\n"}, ["GEMINI.md:1 oversized-inline-import"]),
+        ("gemini expanded over 24k", {"AGENTS.md": "a" * 12000, "CLAUDE.md": "b" * 12000, "GEMINI.md": "@AGENTS.md\n@CLAUDE.md\n" + ("c" * 200)}, ["GEMINI.md: expanded size"]),
+        (
+            "codex cumulative chain over 32k",
+            {
+                "AGENTS.md": "a" * 11500,
+                "apps/AGENTS.md": "b" * 11500,
+                "apps/api/AGENTS.md": "c" * 11500,
+            },
+            ["apps/api/AGENTS.md: cumulative AGENTS.md chain"],
+        ),
+    ]
+    for name, files, expected in rule_cases:
+        found = run(files)
+        if not matches(found, expected):
+            failures.append(f"{name}: expected {expected}, got {found}")
+    total = len(CASES) + len(memory_cases) + len(rule_cases)
     for failure in failures:
         print(f"FAIL {failure}")
     print(f"{total - len(failures)}/{total} passed")

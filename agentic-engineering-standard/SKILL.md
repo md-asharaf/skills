@@ -413,8 +413,9 @@ The agent MUST scaffold or reorganize the complete structure in **a single paral
 1. **Shared Standards & Zero-Pollution Linking:**
    - Mounts `.skills/` as a gitignored local symlink (`ln -s ~/coding/skills .skills`) and ensures `.skills` is in `.gitignore`. This keeps project git history 100% pure (eliminating submodule pointer churn) while providing instant IDE browsing and global discovery via `~/.gemini/config/skills/` and `~/.agents/skills/`. Central version control lives exclusively in `git@github.com:md-asharaf/skills.git`.
 2. **Root Files:**
-   - `AGENTS.md`: Agent constitution, code style invariants, Stop-and-Ask triggers, and Universal Memory operating system.
-   - `CLAUDE.md`: Claude Code entrypoint importing `@AGENTS.md` with master sources of truth and quality gates.
+   - `AGENTS.md`: Thin project router (strictly `<= 12 KB`, cumulative `<= 32 KiB` across subdirectories) holding precedence, commands, keyword-only `SPEC.md` map (no line numbers or inline spec prose), `Patterns to copy`, stop-and-ask triggers, and project-only invariants not covered by `.skills/` or tools.
+   - `CLAUDE.md`: Claude Code entrypoint importing `@AGENTS.md` with master sources of truth and pointers to `.skills/`.
+   - `GEMINI.md`: Antigravity and Gemini CLI entrypoint expanding `@AGENTS.md` and `@.skills/agentic-engineering-standard/HARD-RULES.md` (`<= 24 KB` expanded) with plain path pointers (no `@` inline expansion) to backend, frontend, monorepo, and review files.
    - `TASK.md`: Live state machine (strictly `<= 40 lines`, aim for 30) with Goal, Active Task, Queued Tasks, Blockers.
    - `SPEC.md`: Preserved if present; seeded if absent.
 3. **Cold Knowledge Base (`docs/`):**
@@ -425,7 +426,7 @@ The agent MUST scaffold or reorganize the complete structure in **a single paral
    - `docs/reports/`: Point-in-time audit reports directory (with `.gitkeep`).
    - `docs/archive/COMPLETED_YYYY_MM.md`: Active month archive file initialized.
 
-**One command for every project.** The `project-setup` skill (`/project-setup`, or "setup project") runs `scripts/setup-project.sh`: `--check` reports what is missing, a plain run creates only missing files and inserts missing directory imports, never overwriting `SPEC.md`, `AGENTS.md`, `CLAUDE.md` or any other file. It also adds the enforcement layers of `enforcement/README.md` (backend and frontend standards imported in the server and UI folders' `CLAUDE.md`) and lists what is still missing (CI, pre-commit hook, type-aware lint) and the owner actions (installing the managed layer with sudo, branch protection, pushing). The session-start check of the managed layer offers it in any repository that is not set up.
+**One command for every project.** The `project-setup` skill (`/project-setup`, or "setup project") runs `scripts/setup-project.sh`: `--check` reports what is missing, a plain run creates only missing files and inserts missing directory pointers (`AGENTS.md` and `CLAUDE.md`), never overwriting `SPEC.md`, `AGENTS.md`, `CLAUDE.md` or any other file and never `@`-expanding full 23–50 KB `SKILL.md` files inline. It enforces size and `@`-import budgets through `check-rules.py` and lists what is still missing (CI, pre-commit hook, type-aware lint) and the owner actions (installing the managed layer with sudo, branch protection, pushing). The session-start check of the managed layer offers it in any repository that is not set up.
 
 ---
 
@@ -477,6 +478,12 @@ When instructions, existing code, and documentation appear to conflict, the agen
 | **Tier 3** | **Existing Codebase Patterns** | Pattern source for generic implementations. **Specification wins on any conflict** (conflict must be reported). |
 
 * **The Conflict Invariant:** Relying on existing legacy code as an excuse to violate the primary specification or this constitution is strictly forbidden.
+
+### 11.1 Applicability Across Projects
+
+The agentic standard is the universal process baseline. Backend, frontend, and monorepo standards apply only to work in those areas. Rules tied to a language, framework, database, storage system, or provider apply only when the project uses that technology; examples do not select a project's stack.
+
+The project's primary specification remains authoritative. If a standard conflicts with it, or the agent cannot determine whether a rule applies, the agent must stop, report the conflict or unknown, and ask rather than guess. A setup is not verified for a language, framework, or agent until its profile and instruction path have been tested.
 
 ---
 

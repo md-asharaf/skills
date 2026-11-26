@@ -2,7 +2,16 @@ pipeline {
   agent any
   options { timeout(time: 45, unit: 'MINUTES') }
   stages {
-    stage('Secret scan') { steps { sh 'gitleaks git --redact --no-banner .' } }
+    stage('Secret scan') {
+      steps {
+        sh '''
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz -o gitleaks.tar.gz
+          echo '5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba  gitleaks.tar.gz' | sha256sum --check
+          tar -xzf gitleaks.tar.gz gitleaks
+          ./gitleaks git --redact --no-banner .
+        '''
+      }
+    }
     stage('Toolchain') { steps { sh 'echo REPLACE_WITH_TOOLCHAIN; exit 1' } }
     stage('Gates') { steps { sh './scripts/gates.sh ci' } }
   }

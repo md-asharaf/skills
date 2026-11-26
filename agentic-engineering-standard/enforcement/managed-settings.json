@@ -24,7 +24,11 @@
       "Edit(**/agentic-engineering-standard/enforcement/**)",
       "Edit(**/scripts/gates.sh)",
       "Edit(**/scripts/checks/**)",
-      "Edit(**/.claude/agents/**)"
+      "Edit(**/.claude/agents/**)",
+      "Edit(**/vitest.config.*)",
+      "Edit(**/jest.config.*)",
+      "Edit(**/playwright.config.*)",
+      "Edit(**/pytest.ini)"
     ],
     "disableBypassPermissionsMode": "disable"
   },
